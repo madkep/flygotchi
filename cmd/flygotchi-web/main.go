@@ -14,10 +14,18 @@ import (
 
 func main() {
 	port := flag.Int("port", 8080, "local web server port")
+	brainPack := flag.String("brain-pack", filepath.Join("data", "brain-packs", "flywire-v783-microcircuit", "manifest.json"), "path to a brain-pack manifest")
 	flag.Parse()
 
 	webRoot := filepath.Join("web")
-	world := game.New(brain.SyntheticBrain{}, filepath.Join("data", "mica-state.json"))
+	activeBrain := brain.Brain(brain.SyntheticBrain{})
+	if connectome, err := brain.LoadConnectomeBrain(*brainPack); err == nil {
+		activeBrain = connectome
+		log.Printf("loaded brain pack %q", connectome.ID())
+	} else {
+		log.Printf("using synthetic brain: could not load %s: %v", *brainPack, err)
+	}
+	world := game.New(activeBrain, filepath.Join("data", "mica-state.json"))
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/state", func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, world.Snapshot()) })
 	mux.HandleFunc("POST /api/brain/step", func(w http.ResponseWriter, r *http.Request) {

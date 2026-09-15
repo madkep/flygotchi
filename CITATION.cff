@@ -1,0 +1,7 @@
+cff-version: 1.2.0
+message: "If you use FlyGotchi with FlyWire-derived data, cite FlyGotchi and the FlyWire sources described in THIRD_PARTY_LICENSES.md."
+title: "FlyGotchi"
+type: software
+authors:
+  - name: "FlyGotchi contributors"
+license: Apache-2.0

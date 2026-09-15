@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/json"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"sync"
@@ -20,16 +21,19 @@ type PetState struct {
 }
 
 type Snapshot struct {
-	Pet   PetState         `json:"pet"`
-	Motor brain.MotorFrame `json:"motor"`
-	Brain string           `json:"brain_pack"`
+	Pet    PetState           `json:"pet"`
+	Motor  brain.MotorFrame   `json:"motor"`
+	Brain  string             `json:"brain_pack"`
+	Visual *brain.VisualFrame `json:"brain_visual,omitempty"`
 }
 
 type World struct {
-	mu       sync.Mutex
-	brain    brain.Brain
-	state    PetState
-	savePath string
+	mu        sync.Mutex
+	brain     brain.Brain
+	state     PetState
+	lastMotor brain.MotorFrame
+	lastStep  time.Time
+	savePath  string
 }
 
 type saveFile struct {
@@ -40,13 +44,15 @@ type saveFile struct {
 func New(br brain.Brain, savePath string) *World {
 	w := &World{brain: br, savePath: savePath, state: PetState{Hunger: 38, Energy: 73, Bond: 61, Stress: 14, Activity: "Explorando el jardín", Memory: []string{"Mica recuerda que los pétalos violetas suelen esconder néctar."}}}
 	w.load()
+	w.lastStep = time.Now()
+	w.lastMotor = w.brain.Step(brain.SensoryFrame{Safety: .25, Novelty: .08}, brain.InternalState{Hunger: w.state.Hunger, Energy: w.state.Energy, Bond: w.state.Bond, Stress: w.state.Stress}, 100)
 	return w
 }
 
 func (w *World) Snapshot() Snapshot {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return Snapshot{Pet: w.state, Brain: w.brain.ID()}
+	return w.snapshot()
 }
 
 // Step turns a player action into sensory input. The brain determines which
@@ -56,14 +62,26 @@ func (w *World) Step(action string) Snapshot {
 	defer w.mu.Unlock()
 
 	sensory, memory := sensoryFor(action)
+	dtSeconds := clamp(time.Since(w.lastStep).Seconds(), .1, 10)
+	w.lastStep = time.Now()
 	internal := brain.InternalState{Hunger: w.state.Hunger, Energy: w.state.Energy, Bond: w.state.Bond, Stress: w.state.Stress}
-	motor := w.brain.Step(sensory, internal, 100)
-	w.apply(motor, sensory)
+	motor := w.brain.Step(sensory, internal, int(dtSeconds*1000))
+	w.lastMotor = motor
+	w.apply(motor, sensory, dtSeconds)
 	if memory != "" {
 		w.remember(memory)
 	}
 	w.save()
-	return Snapshot{Pet: w.state, Motor: motor, Brain: w.brain.ID()}
+	return w.snapshot()
+}
+
+func (w *World) snapshot() Snapshot {
+	s := Snapshot{Pet: w.state, Motor: w.lastMotor, Brain: w.brain.ID()}
+	if visualBrain, ok := w.brain.(brain.VisualBrain); ok {
+		visual := visualBrain.Visual()
+		s.Visual = &visual
+	}
+	return s
 }
 
 func sensoryFor(action string) (brain.SensoryFrame, string) {
@@ -77,18 +95,41 @@ func sensoryFor(action string) (brain.SensoryFrame, string) {
 	case "explore":
 		return brain.SensoryFrame{Novelty: .95, Safety: .54, Reward: .22}, "Una luciérnaga dejó una ruta luminosa cerca del estanque."
 	default:
-		return brain.SensoryFrame{Novelty: .18, Safety: .68}, ""
+		return brain.SensoryFrame{Novelty: .03 + rand.Float64()*.12, Safety: .15 + rand.Float64()*.08}, ""
 	}
 }
 
-func (w *World) apply(m brain.MotorFrame, s brain.SensoryFrame) {
-	// Baseline needs drift. Motor output, rather than the raw player action,
-	// determines the magnitude of the behaviour's consequences.
-	w.state.Hunger = clamp(w.state.Hunger+.48-m.Eat*(4+s.FoodContact*18), 0, 100)
-	w.state.Energy = clamp(w.state.Energy-.28+m.Rest*7-m.Explore*.38, 0, 100)
-	w.state.Bond = clamp(w.state.Bond+m.Social*(1+s.Touch*5), 0, 100)
-	w.state.Stress = clamp(w.state.Stress-m.Rest*1.4-m.Social*.8+m.Explore*.22, 0, 100)
-	w.state.Activity = map[string]string{"eat": "Saboreando néctar", "rest": "Descansando bajo una hoja", "explore": "Trazando una nueva ruta", "socialize": "Jugando contigo"}[m.Dominant]
+func (w *World) apply(m brain.MotorFrame, s brain.SensoryFrame, dtSeconds float64) {
+	// Needs drift with elapsed time. Contact and a suitable refuge gate the
+	// consequences; a motor intention alone cannot feed or heal the pet.
+	baseline := clamp(dtSeconds/5, .02, 2)
+	restCue := clamp((s.Safety-.8)/.2, 0, 1) * (1 - s.Touch) * (1 - s.FoodContact)
+	w.state.Hunger = clamp(w.state.Hunger+.42*baseline-m.Eat*s.FoodContact*14, 0, 100)
+	w.state.Energy = clamp(w.state.Energy-.34*baseline-m.Explore*s.Novelty*2.2-m.Social*s.Touch*1.1+m.Rest*restCue*8, 0, 100)
+	w.state.Bond = clamp(w.state.Bond-.025*baseline+m.Social*s.Touch*5.5, 0, 100)
+	w.state.Stress = clamp(w.state.Stress+.035*baseline+m.Explore*s.Novelty*.35-m.Rest*restCue*.9-m.Social*s.Touch*.5, 0, 100)
+	switch m.Dominant {
+	case "eat":
+		if s.FoodContact > .1 {
+			w.state.Activity = "Saboreando néctar"
+		} else {
+			w.state.Activity = "Buscando néctar"
+		}
+	case "rest":
+		if restCue > .1 {
+			w.state.Activity = "Descansando bajo una hoja"
+		} else {
+			w.state.Activity = "Buscando refugio"
+		}
+	case "socialize":
+		if s.Touch > .1 {
+			w.state.Activity = "Jugando contigo"
+		} else {
+			w.state.Activity = "Atenta a tu presencia"
+		}
+	default:
+		w.state.Activity = "Trazando una nueva ruta"
+	}
 }
 
 func (w *World) remember(message string) {

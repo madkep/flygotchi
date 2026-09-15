@@ -1,0 +1,29 @@
+/* Places in the garden are interactive sensory landmarks, not a static backdrop. */
+.fly { --fly-size:.74; }
+.map-feature { position:absolute; z-index:3; border:0; padding:0; font:inherit; color:inherit; cursor:crosshair; -webkit-tap-highlight-color:transparent; }
+.map-feature:focus-visible { outline:2px solid #ecffb6; outline-offset:5px; }
+.pond { left:31%; bottom:12%; width:42%; height:9%; border-radius:50%; background:#81d8d177; box-shadow:0 0 28px #7de6e855; overflow:visible; transition:filter .45s ease, transform .45s ease; }
+.pond:before,.pond:after,.pond i { content:''; position:absolute; inset:22% 34%; border:1px solid #b9fff2aa; border-radius:50%; opacity:0; transform:scale(.25); pointer-events:none; }
+.pond:after { animation-delay:.8s; }.pond i:nth-child(2) { animation-delay:1.6s; }
+.pond.is-active { filter:brightness(1.35) saturate(1.24); transform:scale(1.04); }
+.pond.is-active:before,.pond.is-active:after,.pond.is-active i { animation:pond-ripple 1.9s ease-out infinite; }
+.flower { display:grid; place-items:center; width:42px; height:42px; padding:0; border-radius:50%; background:transparent; transition:transform .35s cubic-bezier(.2,.8,.25,1),filter .35s; }
+.flower em { position:absolute; top:29px; left:50%; transform:translateX(-50%); color:#fff5bd; font:600 8px 'DM Mono',monospace; font-style:normal; letter-spacing:.06em; opacity:0; transition:opacity .25s; text-shadow:0 1px 8px #192343; }
+.flower:before { content:''; position:absolute; inset:1px; border:1px solid #ffe98d00; border-radius:50%; transform:scale(.55); }
+.flower.is-sensed { transform:scale(1.22) rotate(8deg); filter:drop-shadow(0 0 10px #ffe47a); }
+.flower.is-sensed em { opacity:1; }.flower.is-sensed:before { border-color:#fff3b4aa; animation:nectar-pulse 1.25s ease-out infinite; }
+.leaf-refuge { width:72px; height:33px; border-radius:100% 0 100% 0; background:linear-gradient(135deg,#94e3a7,#2b8c67); box-shadow:inset -8px -5px 12px #17463855,0 3px 11px #09291d44; transform:rotate(-26deg); opacity:.82; transition:filter .4s,transform .45s; }
+.leaf-refuge span { position:absolute; width:2px; height:93%; left:50%; top:4%; background:#c6ffd077; transform:rotate(46deg); transform-origin:bottom; }
+.leaf-a { left:9%; bottom:22%; }.leaf-b { right:9%; bottom:25%; transform:rotate(23deg) scale(.82); }
+.leaf-refuge.is-sensed { filter:brightness(1.4) drop-shadow(0 0 9px #9ff5c2aa); }
+.leaf-a.is-sensed { transform:rotate(-16deg) scale(1.08); }.leaf-b.is-sensed { transform:rotate(14deg) scale(.93); }
+.plant { transition:transform .45s cubic-bezier(.2,.72,.26,1),filter .45s; }
+.plant.is-brushed { filter:brightness(1.16) saturate(1.14); }.plant-a.is-brushed { transform:rotate(4deg); }.plant-b.is-brushed { transform:scale(.78) rotate(-5deg); }
+.firefly { position:absolute; z-index:2; width:5px; height:5px; border-radius:50%; background:#e9ff91; box-shadow:0 0 9px 3px #baff7a99; opacity:.74; animation:firefly-drift 5.3s ease-in-out infinite alternate; transition:transform .55s ease,opacity .35s ease; }
+.firefly-a { left:30%; bottom:29%; }.firefly-b { left:68%; bottom:24%; animation-delay:-2.1s; }.firefly-c { left:53%; bottom:16%; animation-delay:-3.7s; }
+.terrarium.is-disturbed .firefly { opacity:.16; transform:translate(var(--scatter-x,18px),-18px); }
+.terrarium.is-near-pond .pond { box-shadow:0 0 40px #88f4ed88; }
+@keyframes pond-ripple { 0% { opacity:.72; transform:scale(.25); } 100% { opacity:0; transform:scale(3.5); } }
+@keyframes nectar-pulse { 0% { opacity:.72; transform:scale(.6); } 100% { opacity:0; transform:scale(1.55); } }
+@keyframes firefly-drift { to { transform:translate(17px,-19px); opacity:.35; } }
+@media (prefers-reduced-motion:reduce) { .pond.is-active:before,.pond.is-active:after,.pond.is-active i,.flower.is-sensed:before,.firefly { animation:none; } }

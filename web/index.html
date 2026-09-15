@@ -9,12 +9,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="fly.css" />
+    <link rel="stylesheet" href="map.css" />
+    <link rel="stylesheet" href="brain.css" />
   </head>
   <body>
     <main class="app-shell">
       <header class="topbar">
         <a class="brand" href="#" aria-label="FlyGotchi inicio"><span class="brand-mark">✦</span><span>FLYGOTCHI</span></a>
-        <div class="brain-status"><i></i><span>brain pack: <strong>synthetic-v1</strong></span><span class="clock" id="clock">08:42</span></div>
+        <div class="brain-status"><i></i><span>brain pack: <strong id="brainPack">cargando…</strong></span><span class="clock" id="clock">08:42</span></div>
         <button class="icon-button" id="soundToggle" aria-label="Activar o desactivar sonido">◌</button>
       </header>
 
@@ -31,18 +34,42 @@
 
         <section class="terrarium" aria-label="Jardín de Mica">
           <div class="sky-glow"></div><div class="sun"></div><div class="cloud cloud-a"></div><div class="cloud cloud-b"></div>
-          <div class="hill hill-back"></div><div class="hill hill-front"></div><div class="pond"></div>
-          <div class="plant plant-a"><i></i><i></i><i></i></div><div class="plant plant-b"><i></i><i></i></div><div class="flower f1">✦</div><div class="flower f2">✦</div>
-          <button class="fly" id="fly" aria-label="Hablar con Mica"><span class="wing wing-left"></span><span class="wing wing-right"></span><span class="fly-body"><i></i><i></i></span><b>✦</b></button>
+          <div class="hill hill-back"></div><div class="hill hill-front"></div>
+          <button class="pond map-feature" id="pond" data-feature="water" aria-label="Estanque: aire húmedo y reflejos"><i></i><i></i></button>
+          <div class="plant plant-a" id="plantA"><i></i><i></i><i></i></div><div class="plant plant-b" id="plantB"><i></i><i></i></div>
+          <button class="leaf-refuge leaf-a map-feature" data-feature="refuge" aria-label="Hoja grande: refugio fresco"><span></span></button><button class="leaf-refuge leaf-b map-feature" data-feature="refuge" aria-label="Hoja alta: refugio fresco"><span></span></button>
+          <button class="flower f1 map-feature" data-feature="nectar" aria-label="Flor coral con néctar"><span>✿</span><em>néctar</em></button><button class="flower f2 map-feature" data-feature="nectar" aria-label="Flor dorada con néctar"><span>✿</span><em>néctar</em></button>
+          <div class="firefly firefly-a" aria-hidden="true"></div><div class="firefly firefly-b" aria-hidden="true"></div><div class="firefly firefly-c" aria-hidden="true"></div>
+          <div class="fly-shadow" id="flyShadow" aria-hidden="true"></div>
+          <button class="fly fly--explore fly--flight" id="fly" aria-label="Jugar con Mica">
+            <svg class="fly-anatomy" viewBox="0 0 160 130" aria-hidden="true">
+              <defs>
+                <linearGradient id="wingGlass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7fbff" stop-opacity=".92"/><stop offset=".6" stop-color="#a9d6e1" stop-opacity=".72"/><stop offset="1" stop-color="#77b9c5" stop-opacity=".28"/></linearGradient>
+                <linearGradient id="bodyShell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8d7a84"/><stop offset=".45" stop-color="#463a46"/><stop offset="1" stop-color="#241e2c"/></linearGradient>
+                <radialGradient id="eyeFacet"><stop stop-color="#bd6871"/><stop offset=".7" stop-color="#7d364c"/><stop offset="1" stop-color="#4d2638"/></radialGradient>
+              </defs>
+              <g class="fly-wings"><path class="fly-wing fly-wing-back" d="M80 55 C49 7 15 9 13 25 C10 43 45 64 82 65 Z"/><path class="fly-wing fly-wing-front" d="M87 58 C103 7 140 5 148 24 C152 41 119 63 89 69 Z"/><path class="wing-vein" d="M82 60 Q51 34 20 23 M84 60 Q53 42 35 44 M89 62 Q117 33 144 24 M90 63 Q116 43 135 47"/></g>
+              <g class="fly-legs"><path class="fly-leg foreleg" d="M59 76 Q43 88 42 107 L31 113"/><path class="fly-leg foreleg" d="M67 80 Q61 98 56 111 L47 116"/><path class="fly-leg midleg" d="M80 83 Q76 105 69 116 L61 120"/><path class="fly-leg midleg" d="M87 83 Q94 102 99 114 L109 117"/><path class="fly-leg hindleg" d="M94 77 Q111 93 117 109 L129 113"/><path class="fly-leg hindleg" d="M99 74 Q123 84 129 103 L142 106"/></g>
+              <g class="fly-abdomen"><path d="M95 62 C125 52 140 67 136 88 C134 105 109 103 89 84 Z" fill="url(#bodyShell)" stroke="#aa9b9e" stroke-width="2"/><path d="M112 60 Q117 86 110 96 M122 64 Q129 84 122 98 M131 70 Q136 81 131 91" fill="none" stroke="#b9a7a0" stroke-opacity=".55" stroke-width="3"/></g>
+              <circle class="fly-haltere" cx="94" cy="71" r="4"/>
+              <ellipse class="fly-thorax" cx="80" cy="67" rx="25" ry="22" fill="url(#bodyShell)" stroke="#a5979f" stroke-width="2"/>
+              <path d="M69 52 Q78 63 76 81 M87 51 Q91 65 88 83" stroke="#c4b0a0" stroke-opacity=".42" fill="none" stroke-width="3"/>
+              <g class="fly-head"><circle cx="53" cy="64" r="19" fill="#4b3f46" stroke="#b9a39a" stroke-width="2"/><ellipse class="fly-eye" cx="45" cy="58" rx="14" ry="15" fill="url(#eyeFacet)"/><path class="eye-facets" d="M38 48 Q44 62 38 70 M45 45 Q52 62 46 72 M33 56 Q44 57 57 53 M34 64 Q46 61 57 63" stroke="#de99a0" stroke-opacity=".3" fill="none" stroke-width="1"/><path class="fly-antenna" d="M40 48 Q35 37 28 34 M45 45 Q45 35 39 31"/><path class="fly-proboscis" d="M38 73 Q31 79 29 89"/></g>
+            </svg>
+          </button>
           <div class="speech" id="speech">¡Hola! ¿Salimos a buscar néctar?</div>
+          <div class="garden-whisper" id="gardenWhisper" aria-live="polite">Acerca el cursor para observar su respuesta.</div>
           <div class="location-pill"><span>◒</span> Jardín de las luciérnagas</div>
         </section>
 
         <aside class="brain-panel">
-          <div class="panel-heading"><div><span class="eyebrow">BRAIN PULSE</span><h2>Actividad emergente</h2></div><span class="live">EN VIVO</span></div>
-          <canvas id="neuralCanvas" width="360" height="258" aria-label="Visualización de red neural"></canvas>
-          <div class="signal-grid"><div><span>señal dominante</span><strong id="signalName">explorar</strong></div><div><span>confianza</span><strong id="signalConfidence">0.74</strong></div></div>
-          <p class="brain-note">Un simulador ligero representa la interfaz del Brain API; los brain packs reales se conectan sin cambiar el juego.</p>
+          <div class="panel-heading"><div><span class="eyebrow">CONECTOMA · FAFB v783</span><h2>Mapa de actividad</h2></div><span class="live">EN VIVO</span></div>
+          <div class="brain-stage"><canvas id="neuralCanvas" width="720" height="560" aria-label="Proyección de neuronas y enlaces del conectoma"></canvas><span class="brain-coordinate">PROYECCIÓN X / Y</span><span class="brain-node-info" id="brainNodeInfo">Pasa el cursor por una neurona</span></div>
+          <div class="brain-legend"><span><i class="legend-visual"></i>visual</span><span><i class="legend-central"></i>central</span><span><i class="legend-motor"></i>descendente</span></div>
+          <div class="brain-count" id="brainCount">Cargando topología…</div>
+          <div class="signal-grid"><div><span>salida del juego</span><strong id="signalName">explorar</strong></div><div><span>intensidad</span><strong id="signalConfidence">0.74</strong></div></div>
+          <div class="motor-bars" aria-label="Salidas motoras"><div><span>Alimento</span><i><b id="motorEat"></b></i></div><div><span>Reposo</span><i><b id="motorRest"></b></i></div><div><span>Explorar</span><i><b id="motorExplore"></b></i></div><div><span>Social</span><i><b id="motorSocial"></b></i></div></div>
+          <p class="brain-note">Puntos anatómicos y enlaces dirigidos de FlyWire. La actividad y las salidas son una aproximación jugable; todavía no predicen la conducta de una mosca real.</p>
         </aside>
       </section>
 

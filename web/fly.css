@@ -1,0 +1,61 @@
+/* Anatomical side view and stateful movement. Routes are chosen by app.js. */
+.fly {
+  left: 0; top: 0; width: 116px; height: 94px; padding: 0;
+  display: block; border: 0; background: transparent; z-index: 5;
+  animation: none;
+  filter: drop-shadow(0 8px 8px #07151a77);
+  transform: translate3d(var(--fly-x, 45vw), var(--fly-y, 20vh), 0) rotate(var(--fly-angle, 0deg)) scale(var(--fly-size, 1));
+  transition: transform var(--flight-time, 1.7s) cubic-bezier(.27,.64,.36,1);
+  will-change: transform;
+}
+.fly:focus-visible { outline: 2px solid #c9f5e5; outline-offset: 5px; border-radius: 50%; }
+.fly-anatomy { display:block; width:100%; height:100%; overflow:visible; }
+.fly-wing { fill:url(#wingGlass); stroke:#e7fcf8a8; stroke-width:2; transform-origin:82px 62px; animation:fly-wingbeat var(--beat-time, 95ms) ease-in-out infinite alternate; }
+.fly-wing-back { animation-delay:calc(var(--beat-time, 95ms) * -.5); opacity:.77; }
+.wing-vein { fill:none; stroke:#cbfbf4; stroke-opacity:.36; stroke-width:1.2; pointer-events:none; }
+.fly-legs { fill:none; stroke:#a89492; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+.fly-leg { transform-origin:80px 80px; animation:fly-leg-drift 1.3s ease-in-out infinite alternate; }
+.fly-leg:nth-child(2n) { animation-delay:-.65s; }
+.fly-haltere { fill:#cbb0a8; }
+.fly-thorax { transform-origin:80px 66px; animation:fly-breathe 1.3s ease-in-out infinite alternate; }
+.fly-antenna,.fly-proboscis { fill:none; stroke:#c7ada2; stroke-width:2; stroke-linecap:round; }
+.fly-proboscis { transform-origin:37px 72px; transition:transform .4s ease; }
+.fly-eye { filter:drop-shadow(0 0 2px #f6b7ae88); }
+.fly--flight .fly-leg { animation-duration:.55s; }
+.fly--flight .fly-wing { opacity:.95; }
+.fly--landed .fly-wing { animation:none; opacity:.59; transform:rotate(-4deg) scaleY(.6); }
+.fly--landed .fly-leg { animation-duration:2.1s; }
+.fly--feed .fly-proboscis { transform:rotate(26deg) translate(-3px,6px); }
+.fly--feed .fly-head { animation:fly-feed-head .8s ease-in-out infinite alternate; transform-origin:53px 64px; }
+.fly--groom .foreleg { animation:fly-groom .38s ease-in-out infinite alternate; }
+.fly--groom .foreleg:nth-child(2) { animation-delay:-.19s; }
+.fly--rest .fly-thorax { animation-duration:2.4s; }
+.fly--rest .fly-leg { animation:none; }
+.fly--rest .fly-eye { filter:none; }
+.fly--walk .fly-leg { animation:fly-walk .42s ease-in-out infinite alternate; }
+.fly--walk .fly-thorax { animation:fly-step .42s ease-in-out infinite alternate; }
+.fly--run .fly-leg { animation:fly-run .16s linear infinite alternate; }
+.fly--run .fly-thorax { animation:fly-step .16s linear infinite alternate; }
+.fly--alert .fly-wing { animation:fly-alert-wing .12s ease-in-out infinite alternate; }
+.fly--alert .fly-head { animation:fly-alert-head .22s ease-in-out infinite alternate; transform-origin:53px 64px; }
+.fly--escape { filter:drop-shadow(0 10px 10px #07151aaa) brightness(1.09); }
+.fly--escape .fly-wing { animation-duration:56ms; }
+.fly--social .fly-head { animation:fly-social-head .68s ease-in-out infinite alternate; transform-origin:53px 64px; }
+.fly-shadow { position:absolute; z-index:4; left:0; top:0; width:60px; height:11px; border-radius:50%; background:#06171988; filter:blur(4px); transform:translate3d(var(--shadow-x, 50vw),var(--shadow-y, 72vh),0) scale(var(--shadow-scale, .6)); transition:transform var(--flight-time, 1.7s) ease,opacity .5s; opacity:var(--shadow-alpha,.35); pointer-events:none; }
+.garden-whisper { position:absolute; z-index:3; right:18px; bottom:19px; max-width:220px; padding:7px 10px; border:1px solid #a8d9d766; border-radius:10px; background:#112c36a9; color:#c4ebe0; font:600 10px/1.3 var(--mono,monospace); letter-spacing:.02em; opacity:.76; pointer-events:none; transition:opacity .3s ease, transform .3s ease; }
+.flower { color:#f5d69d; text-shadow:0 0 13px #fff5cfaa; }
+.flower span { display:inline-block; transform-origin:center; animation:flower-sway 5s ease-in-out infinite alternate; }
+.speech { animation:none; }
+@keyframes fly-wingbeat { from { transform:rotate(-10deg) scaleY(.75); } to { transform:rotate(14deg) scaleY(.36); } }
+@keyframes fly-leg-drift { to { transform:rotate(6deg); } }
+@keyframes fly-breathe { to { transform:scaleY(1.035); } }
+@keyframes fly-feed-head { to { transform:rotate(6deg) translateY(2px); } }
+@keyframes fly-groom { from { transform:rotate(-25deg) translateY(-3px); } to { transform:rotate(28deg) translateY(-11px); } }
+@keyframes fly-walk { to { transform:rotate(13deg) translate(2px,1px); } }
+@keyframes fly-run { to { transform:rotate(22deg) translate(4px,2px); } }
+@keyframes fly-step { to { transform:translateY(1.5px) rotate(1deg); } }
+@keyframes fly-alert-wing { to { transform:rotate(22deg) scaleY(.56); } }
+@keyframes fly-alert-head { to { transform:translate(-2px,-1px) rotate(-4deg); } }
+@keyframes fly-social-head { to { transform:rotate(5deg) translateY(1px); } }
+@keyframes flower-sway { to { transform:rotate(8deg); } }
+@media (prefers-reduced-motion:reduce) { .fly,.fly-shadow,.fly-wing,.fly-leg,.fly-thorax,.fly-head,.flower span { animation:none!important; transition:none!important; } }

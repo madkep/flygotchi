@@ -1,2 +1,3 @@
-# Runtime state belongs to each local player, not to the repository.
-data/mica-state.json
+# Runtime state and research datasets belong to each local player, not to the repository.
+# This includes FlyWire source files and generated brain packs.
+/data/

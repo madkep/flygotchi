@@ -36,6 +36,33 @@ type Brain interface {
 	Step(SensoryFrame, InternalState, int) MotorFrame
 }
 
+// VisualFrame exposes the actual selected topology and representative neuron
+// positions to the browser. The positions are points, not traced morphology.
+type VisualFrame struct {
+	Nodes            []VisualNode `json:"nodes"`
+	Edges            []VisualEdge `json:"edges"`
+	TotalConnections int          `json:"total_connections"`
+	Dataset          string       `json:"dataset"`
+}
+
+type VisualNode struct {
+	ID         string  `json:"id"`
+	Position   [3]int  `json:"position"`
+	Side       string  `json:"side"`
+	SuperClass string  `json:"super_class"`
+	CellClass  string  `json:"cell_class"`
+	Activity   float64 `json:"activity"`
+}
+
+type VisualEdge struct {
+	From             int     `json:"from"`
+	To               int     `json:"to"`
+	Weight           float64 `json:"weight"`
+	Neurotransmitter string  `json:"neurotransmitter"`
+}
+
+type VisualBrain interface{ Visual() VisualFrame }
+
 // SyntheticBrain is deliberately small and inspectable. It is not intended as
 // a biological model: it is a useful, replaceable brain pack for the game.
 type SyntheticBrain struct{}
