@@ -6,22 +6,52 @@ package brain
 import "math"
 
 type SensoryFrame struct {
-	FoodSmell   float64 `json:"food_smell"`
-	FoodContact float64 `json:"food_contact"`
-	Touch       float64 `json:"touch"`
-	Safety      float64 `json:"safety"`
-	Novelty     float64 `json:"novelty"`
-	Reward      float64 `json:"reward"`
+	FoodSmell      float64 `json:"food_smell"`
+	FoodSmellLeft  float64 `json:"food_smell_left"`
+	FoodSmellRight float64 `json:"food_smell_right"`
+	FoodContact    float64 `json:"food_contact"`
+	RefugeSmell    float64 `json:"refuge_smell"`
+	RefugeLeft     float64 `json:"refuge_smell_left"`
+	RefugeRight    float64 `json:"refuge_smell_right"`
+	RefugeCue      float64 `json:"refuge_cue"`
+	RefugeContact  float64 `json:"refuge_contact"`
+	Touch          float64 `json:"touch"`
+	TouchLeft      float64 `json:"touch_left"`
+	TouchRight     float64 `json:"touch_right"`
+	VisionLeft     float64 `json:"vision_left"`
+	VisionRight    float64 `json:"vision_right"`
+	DangerSmell    float64 `json:"danger_smell"`
+	Safety         float64 `json:"safety"`
+	Novelty        float64 `json:"novelty"`
+	Temperature    float64 `json:"temperature"`
+	WaterContact   float64 `json:"water_contact"`
+	Taste          float64 `json:"taste"`
+	Humidity       float64 `json:"humidity"`
+	Airflow        float64 `json:"airflow"`
+	AngularSpeed   float64 `json:"angular_speed"`
+	BodySpeed      float64 `json:"body_speed"`
+	GroundContact  float64 `json:"ground_contact"`
+	VisionMotion   float64 `json:"vision_motion"`
+	Reward         float64 `json:"reward"`
 }
 
 type InternalState struct {
-	Hunger float64 `json:"hunger"`
-	Energy float64 `json:"energy"`
-	Bond   float64 `json:"bond"`
-	Stress float64 `json:"stress"`
+	Hunger        float64 `json:"hunger"`
+	Energy        float64 `json:"energy"`
+	Bond          float64 `json:"bond"`
+	Stress        float64 `json:"stress"`
+	SleepPressure float64 `json:"sleep_pressure"`
+	Temperature   float64 `json:"temperature"`
+	Reward        float64 `json:"reward"`
+	Pain          float64 `json:"pain"`
+	Age           float64 `json:"age"`
 }
 
 type MotorFrame struct {
+	Forward float64 `json:"forward"`
+	Turn    float64 `json:"turn"`
+	Brake   float64 `json:"brake"`
+	Lift    float64 `json:"lift"`
 	Eat     float64 `json:"eat"`
 	Rest    float64 `json:"rest"`
 	Explore float64 `json:"explore"`
@@ -70,12 +100,12 @@ type SyntheticBrain struct{}
 func (SyntheticBrain) ID() string { return "synthetic-v1" }
 
 func (SyntheticBrain) Step(s SensoryFrame, in InternalState, _ int) MotorFrame {
-	eat := activation(0.24 + s.FoodSmell*0.62 + s.FoodContact*0.32 + in.Hunger/100*0.72 - in.Stress/100*0.12)
-	rest := activation(0.19 + (1-in.Energy/100)*0.86 + s.Safety*0.24 - s.Novelty*0.10)
+	eat := activation(0.24 + s.FoodSmell*0.62 + s.FoodContact*0.32 + in.Hunger/100*0.72 - in.Stress/100*0.12 - s.DangerSmell*.16)
+	rest := activation(0.19 + (1-in.Energy/100)*0.86 + in.SleepPressure/100*.34 + s.Safety*0.24 - s.Novelty*0.10)
 	explore := activation(0.17 + s.Novelty*0.70 + in.Energy/100*0.28 + s.Reward*0.12 - in.Hunger/100*0.19)
 	social := activation(0.13 + s.Touch*0.66 + s.Reward*0.30 + in.Bond/100*0.26 - in.Stress/100*0.11)
 
-	motor := MotorFrame{Eat: eat, Rest: rest, Explore: explore, Social: social}
+	motor := MotorFrame{Eat: eat, Rest: rest, Explore: explore, Social: social, Lift: clamp(s.Novelty*.35+s.VisionMotion*.2-s.GroundContact*.18, 0, 1)}
 	motor.Dominant, motor.Confidence = dominant(motor)
 	return motor
 }

@@ -1,3 +1,6 @@
 # Runtime state and research datasets belong to each local player, not to the repository.
 # This includes FlyWire source files and generated brain packs.
 /data/
+# Godot editor cache and generated script UIDs.
+godot/.godot/
+godot/**/*.gd.uid

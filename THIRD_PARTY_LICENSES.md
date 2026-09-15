@@ -9,3 +9,7 @@ Use is subject to the FlyWire principles and data terms accepted by the local us
 Sources: `https://storage.googleapis.com/flywire-data/codex/data/fafb/783/connections.csv.gz`, `classification.csv.gz`, and `coordinates.csv.gz` from the same FAFB v783 directory.
 
 Relevant publications and annotations: Dorkenwald et al. (2024), Schlegel et al. (2024), and the FlyWire Consortium's FAFB v783 release. See the FlyWire annotations repository for current citations.
+
+## Three.js
+
+The browser terrarium vendors the Three.js 0.160.0 distribution in `web/three.min.js` under the MIT License. See `https://github.com/mrdoob/three.js/blob/r160/LICENSE`.

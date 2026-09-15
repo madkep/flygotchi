@@ -99,6 +99,11 @@ func LoadConnectomeBrain(path string) (*ConnectomeBrain, error) {
 func (b *ConnectomeBrain) ID() string { return b.id }
 
 func (b *ConnectomeBrain) Step(s SensoryFrame, in InternalState, dtMS int) MotorFrame {
+	// A refuge invitation is sensory context, not a navigation command. Its
+	// learned value rises as energy falls, then propagates through the same
+	// selected populations as the other signals.
+	needRest := clamp((38-in.Energy)/38, 0, 1)
+	s.Reward = clamp(s.Reward+s.RefugeCue*needRest*.7, 0, 1)
 	// An inexpensive LIF-inspired frame: 1 ms Euler ticks, 20 ms membrane
 	// timescale, 5 ms synaptic decay, -52/-45 mV rest/threshold, 2.2 ms
 	// refractory period. These are the published Shiu et al. parameters;
@@ -131,16 +136,7 @@ func (b *ConnectomeBrain) Step(s SensoryFrame, in InternalState, dtMS int) Motor
 		}
 	}
 
-	base := SyntheticBrain{}.Step(s, in, dtMS)
-	activity := b.classActivity()
-	// Cell superclasses have biological meaning; they do not identify a
-	// four-action motor decoder. The game adapter uses them as small gains.
-	base.Eat = clamp(base.Eat*(.92+activity[0]*.17), 0, 1)
-	base.Rest = clamp(base.Rest*(1.04-activity[1]*.11), 0, 1)
-	base.Explore = clamp(base.Explore*(.91+activity[1]*.19), 0, 1)
-	base.Social = clamp(base.Social*(.93+activity[2]*.15), 0, 1)
-	base.Dominant, base.Confidence = dominant(base)
-	return base
+	return b.decodeMotor()
 }
 
 func sensoryRateHz(meta nodeMeta, s SensoryFrame) float64 {
@@ -149,17 +145,27 @@ func sensoryRateHz(meta nodeMeta, s SensoryFrame) float64 {
 	// high-degree subset, so it remains part of the game-side motor adapter.
 	switch meta.Class {
 	case "ALPN", "ALLN", "ALIN":
-		return s.FoodSmell * 95
+		smell := math.Max(s.FoodSmell, s.RefugeSmell)
+		left, right := s.FoodSmellLeft, s.FoodSmellRight
+		if s.RefugeSmell > s.FoodSmell {
+			left, right = s.RefugeLeft, s.RefugeRight
+		}
+		if left == 0 && right == 0 {
+			return smell * 95
+		}
+		return (smell*.2 + lateralSense(meta.Side, left, right)*.8) * 95
 	case "MBON", "MBIN", "DAN":
-		return s.Reward * 55
+		return clamp(s.Reward*.75+s.Taste*.25, 0, 1) * 55
 	case "AN":
-		return s.Touch * 85
+		// The refuge material is a local mechanosensory cue: only a body that
+		// has actually reached the house can transition into resting contact.
+		return clamp(lateralSense(meta.Side, s.TouchLeft, s.TouchRight)*.7+s.RefugeContact*.3, 0, 1) * 85
 	}
 	switch meta.SuperClass {
 	case "optic", "visual_projection", "visual_centrifugal":
-		return s.Novelty * 80
+		return clamp(lateralSense(meta.Side, s.VisionLeft, s.VisionRight)*.8+s.VisionMotion*.2, 0, 1) * 80
 	case "ascending":
-		return s.Touch * 60
+		return lateralSense(meta.Side, s.TouchLeft, s.TouchRight) * 60
 	default:
 		return 0
 	}

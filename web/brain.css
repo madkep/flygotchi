@@ -9,6 +9,9 @@
 .brain-legend i { width:7px; height:7px; border-radius:50%; box-shadow:0 0 8px currentColor; }
 .legend-visual { background:#72d5ec; color:#72d5ec; }.legend-central { background:#d8a6ff; color:#d8a6ff; }.legend-motor { background:#ffb589; color:#ffb589; }
 .brain-count { color:#9cacc8; font:9px 'DM Mono',monospace; letter-spacing:.02em; }
+#brainPause { margin-top:10px; padding:7px 10px; border:1px solid #80dfe440; border-radius:7px; color:#bde7e1; background:#111b32; cursor:pointer; font:10px 'DM Mono',monospace; }
+.brain-quality { display:flex; align-items:center; gap:8px; margin-top:9px; color:#9cacc8; font:9px 'DM Mono',monospace; }
+.brain-quality select { border:1px solid #80dfe440; border-radius:6px; color:#bde7e1; background:#111b32; padding:5px; font:9px 'DM Mono',monospace; }
 .brain-panel .signal-grid { margin:13px 0; }
 .motor-bars { display:grid; gap:6px; padding:1px 0 4px; }
 .motor-bars div { display:grid; grid-template-columns:62px 1fr; gap:7px; align-items:center; }
@@ -17,3 +20,12 @@
 .motor-bars b { display:block; height:100%; width:0; border-radius:99px; background:linear-gradient(90deg,#6de5d3,#d7a5ff); box-shadow:0 0 10px #79efda; transition:width .5s ease; }
 .brain-panel .brain-note { margin:12px 0 0; font-size:10px; line-height:1.48; }
 @media(max-width:1050px) { .brain-stage canvas { height:280px; } }
+#mazeSenses { color:#bde7e1; font-size:12px; margin:0 0 12px; }
+@media(max-width:700px) {
+  .maze-active .terrarium.webgl-active { min-height:300px; height:300px; }
+  .maze-active .terrarium > #terrariumCanvas3d { min-height:0; }
+  .maze-active .brain-panel { order:1; padding:12px; }
+  .maze-active .brain-stage canvas { height:130px; }
+  .maze-active .brain-panel .brain-note,
+  .maze-active .brain-panel .motor-bars { display:none; }
+}

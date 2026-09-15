@@ -27,3 +27,18 @@
 @keyframes nectar-pulse { 0% { opacity:.72; transform:scale(.6); } 100% { opacity:0; transform:scale(1.55); } }
 @keyframes firefly-drift { to { transform:translate(17px,-19px); opacity:.35; } }
 @media (prefers-reduced-motion:reduce) { .pond.is-active:before,.pond.is-active:after,.pond.is-active i,.flower.is-sensed:before,.firefly { animation:none; } }
+
+/* The browser terrarium is WebGL; legacy 2D elements remain as transparent
+   hit targets so existing sensory interactions keep working. */
+.terrarium.webgl-active { min-height:620px; }
+.terrarium > #terrariumCanvas3d { position:absolute; inset:0; z-index:0; width:100%; height:100% !important; min-height:620px; display:block; border:0; border-radius:inherit; background:#142344; }
+.terrarium.webgl-active > .sky-glow,.terrarium.webgl-active > .sun,.terrarium.webgl-active > .cloud,.terrarium.webgl-active > .hill,.terrarium.webgl-active > .plant,.terrarium.webgl-active > .firefly,.terrarium.webgl-active > .fly-shadow { display:none !important; }
+.terrarium.webgl-active > .map-feature { opacity:0 !important; }
+.terrarium.webgl-active > .map-feature { pointer-events:auto; }
+.terrarium.webgl-active > #fly { opacity:0 !important; pointer-events:none; }
+.terrarium.webgl-active > .speech { display:none !important; }
+.terrarium.webgl-active > .garden-whisper,.terrarium.webgl-active > .location-pill { z-index:5; }
+.render-badge { position:absolute; z-index:5; top:14px; left:16px; padding:6px 8px; border:1px solid #9be8df66; border-radius:7px; background:#10233fc9; color:#baf6e5; font:600 9px 'DM Mono',monospace; letter-spacing:.12em; box-shadow:0 0 18px #5de6d522; }
+.scene-controls { position:absolute; z-index:5; right:14px; top:14px; display:flex; gap:5px; }
+.scene-controls button { border:1px solid #9be8df44; border-radius:6px; background:#10233fc9; color:#c8ece6; padding:6px 7px; font:600 8px 'DM Mono',monospace; cursor:pointer; }
+.scene-controls button:hover,.scene-controls button:focus-visible { border-color:#9be8df; color:#fff; outline:0; }

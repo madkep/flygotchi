@@ -10,11 +10,19 @@ go run ./cmd/flygotchi-web
 
 Abre [http://localhost:8080](http://localhost:8080). Para otro puerto: `go run ./cmd/flygotchi-web -port 3000`.
 
+El terrario principal se renderiza como una escena 2D plana dentro del navegador usando WebGL (`web/terrarium-3d.js`). Inicia Go y abre [http://localhost:8080](http://localhost:8080). El proyecto [godot/project.godot](godot/project.godot) conserva una ejecución nativa 3D de referencia.
+
+Para iniciar el terrario web y el cerebro con un solo comando (macOS/Linux): `./tools/run_terrarium.sh`. Usa `./tools/run_terrarium.sh --godot` solo para abrir la ejecución nativa de Godot. El scheduler Go mantiene el cerebro a 20 Hz aunque el inspector esté cerrado; `go run ./cmd/brain-benchmark` muestra p50/p95 del backend disponible.
+
 La primera ejecución funciona con el cerebro sintético incluido. Si el pack local de FlyWire está disponible, el servidor lo carga automáticamente; si no, mantiene el cerebro sintético.
 
 ## Arquitectura inicial
 
-El navegador contiene el mundo, interfaz y animación. El servidor Go sirve el juego localmente y será el punto natural para exponer un futuro `Brain API`.
+### Vista cerebral ligera
+
+El mapa dibuja como máximo 160 nodos y 180 enlaces a 10 FPS, con una selección estable por clase y lado. Conserva todas las neuronas y conexiones del pack en el servidor (actualmente 800 neuronas en el microcircuito). Las posiciones se reutilizan entre fotogramas y el mapa deja de dibujarse cuando está fuera de pantalla. El botón «Pausar mapa» afecta solo a la visualización. Para comprobar el muestreo: `node tools/brain_view_test.cjs`.
+
+El navegador contiene el terrario 2D WebGL, la interfaz y la animación. `web/terrarium-3d.js` usa una cámara ortográfica y capas planas aceleradas por GPU; `web/app.js` conserva la simulación corporal y las interacciones; el servidor Go sirve el juego y mantiene la autoridad cerebral.
 
 ```text
 Web game → Brain API → Brain Pack → simulación neuronal
@@ -27,6 +35,10 @@ Los datasets como FlyWire no se incluyen ni se acoplan al juego: serán adaptado
 El juego ya usa un `SyntheticBrain` real en Go. Al interactuar, el navegador llama a `POST /api/brain/step` con una acción (`food`, `play`, `rest` o `explore`). Go traduce esa acción a señales sensoriales, combina las necesidades internas y devuelve las salidas motoras (`eat`, `rest`, `explore`, `social`).
 
 `GET /api/state` entrega el estado actual y `data/mica-state.json` conserva la memoria y las necesidades locales. Esta frontera está definida por `internal/brain.Brain`: un brain pack o adaptador FlyWire futuro solo tendrá que implementar esa interfaz.
+
+El cliente 3D usa `POST /api/v1/senses` con una secuencia monotónica. Buscar comida envía olor; el hambre solo baja cuando el volumen corporal intersecta el néctar y se informa `food_contact: true`. `GET /api/v1/telemetry` expone el tiempo simulado sin depender de la frecuencia de render.
+
+La interfaz solicita la topología una vez desde `/api/v1/brain/topology`; los snapshots posteriores solo llevan estado y motores. Esto conserva las 800 neuronas internas sin retransmitir la red completa en cada actualización.
 
 ## Descargar el brain pack FlyWire FAFB v783 (opcional)
 
