@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#10152a" />
+    <title>FlyGotchi · Neural Garden</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="FlyGotchi inicio"><span class="brand-mark">✦</span><span>FLYGOTCHI</span></a>
+        <div class="brain-status"><i></i><span>brain pack: <strong>synthetic-v1</strong></span><span class="clock" id="clock">08:42</span></div>
+        <button class="icon-button" id="soundToggle" aria-label="Activar o desactivar sonido">◌</button>
+      </header>
+
+      <section class="hero-grid">
+        <aside class="hud-panel" aria-label="Estado de Mica">
+          <div class="pet-title"><span class="eyebrow">TU COMPAÑERA</span><h1>Mica <span>Lv. 04</span></h1><p id="moodText">Curiosa y alerta</p></div>
+          <div class="stat-list">
+            <div class="stat"><span>Hambre</span><b id="hungerValue">38</b><div class="meter coral"><i id="hungerBar" style="width:38%"></i></div></div>
+            <div class="stat"><span>Energía</span><b id="energyValue">73</b><div class="meter mint"><i id="energyBar" style="width:73%"></i></div></div>
+            <div class="stat"><span>Vínculo</span><b id="bondValue">61</b><div class="meter lilac"><i id="bondBar" style="width:61%"></i></div></div>
+          </div>
+          <div class="day-card"><span>día 17 · verano</span><strong id="activity">Explorando el jardín</strong><small>Las necesidades modulan señales, no acciones directas.</small></div>
+        </aside>
+
+        <section class="terrarium" aria-label="Jardín de Mica">
+          <div class="sky-glow"></div><div class="sun"></div><div class="cloud cloud-a"></div><div class="cloud cloud-b"></div>
+          <div class="hill hill-back"></div><div class="hill hill-front"></div><div class="pond"></div>
+          <div class="plant plant-a"><i></i><i></i><i></i></div><div class="plant plant-b"><i></i><i></i></div><div class="flower f1">✦</div><div class="flower f2">✦</div>
+          <button class="fly" id="fly" aria-label="Hablar con Mica"><span class="wing wing-left"></span><span class="wing wing-right"></span><span class="fly-body"><i></i><i></i></span><b>✦</b></button>
+          <div class="speech" id="speech">¡Hola! ¿Salimos a buscar néctar?</div>
+          <div class="location-pill"><span>◒</span> Jardín de las luciérnagas</div>
+        </section>
+
+        <aside class="brain-panel">
+          <div class="panel-heading"><div><span class="eyebrow">BRAIN PULSE</span><h2>Actividad emergente</h2></div><span class="live">EN VIVO</span></div>
+          <canvas id="neuralCanvas" width="360" height="258" aria-label="Visualización de red neural"></canvas>
+          <div class="signal-grid"><div><span>señal dominante</span><strong id="signalName">explorar</strong></div><div><span>confianza</span><strong id="signalConfidence">0.74</strong></div></div>
+          <p class="brain-note">Un simulador ligero representa la interfaz del Brain API; los brain packs reales se conectan sin cambiar el juego.</p>
+        </aside>
+      </section>
+
+      <section class="action-deck" aria-label="Interacciones">
+        <button class="action food" data-action="food"><span class="action-icon">✺</span><span><strong>Dar néctar</strong><small>Reduce el hambre</small></span><kbd>1</kbd></button>
+        <button class="action play" data-action="play"><span class="action-icon">◈</span><span><strong>Jugar</strong><small>Sube el vínculo</small></span><kbd>2</kbd></button>
+        <button class="action rest" data-action="rest"><span class="action-icon">☾</span><span><strong>Descansar</strong><small>Recupera energía</small></span><kbd>3</kbd></button>
+        <button class="action explore" data-action="explore"><span class="action-icon">⌁</span><span><strong>Explorar</strong><small>Busca recuerdos</small></span><kbd>4</kbd></button>
+      </section>
+
+      <section class="log-card"><span class="eyebrow">MEMORIA PORTABLE</span><p id="memoryLog">Mica recuerda que los pétalos violetas suelen esconder néctar.</p><span class="log-dot"></span></section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

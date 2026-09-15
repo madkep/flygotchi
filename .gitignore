@@ -1,0 +1,2 @@
+# Runtime state belongs to each local player, not to the repository.
+data/mica-state.json

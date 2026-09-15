@@ -1,0 +1,24 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "readme_flygotchi",
+      "label": "flygotchi",
+      "author": null,
+      "captured_at": null,
+      "community": 0,
+      "community_name": "Flygotchi Overview",
+      "contributor": null,
+      "file_type": "document",
+      "norm_label": "flygotchi",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null
+    }
+  ],
+  "links": [],
+  "hyperedges": [],
+  "built_at_commit": "dbaef4f62c7585af9f7ddcf0ff46e2ddb3ba7b56"
+}
