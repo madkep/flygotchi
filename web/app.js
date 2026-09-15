@@ -18,7 +18,7 @@ function render() {
   const held = flyMotion.started && performance.now() < flyMotion.holdUntil;
   const visibleActivity = flyMotion.displayActivity || (held ? ({ feed:'Saboreando néctar', rest:'Descansando bajo una hoja', social:'Jugando contigo', explore:'Trazando una nueva ruta' })[flyMotion.signal] : state.activity);
   setText('activity', visibleActivity);
-  fly.setAttribute('aria-label', `Mica está ${visibleActivity.toLowerCase()}. Pulsa para jugar.`);
+  fly.setAttribute('aria-label', `Mica: ${visibleActivity}. Interacción directa no recomendada.`);
 }
 
 function applySnapshot(snapshot, origin = 'load') {
@@ -84,7 +84,7 @@ const behaviorLabels = {
   flight: 'Volando entre las plantas', hover: 'Sobrevolando una flor', perch: 'Observando desde una hoja', walk: 'Caminando sobre una hoja',
   run: 'Corriendo hacia un refugio', groom: 'Limpiando sus patas y ojos', feed: 'Saboreando néctar',
   rest: 'Descansando bajo una hoja', alert: 'Alerta a un movimiento cercano', escape: 'Escapando hacia la sombra',
-  social: 'Acercándose con curiosidad',
+  social: 'Acercándose con curiosidad', hurt: 'Se sobresaltó por el contacto',
 };
 const garden = {
   nectar: [{ x: .25, y: .63 }, { x: .69, y: .64 }],
@@ -103,8 +103,9 @@ const simulation = {
   x: .48, y: .34, vx: 0, vy: 0, heading: -3, state: 'flight', intent: 'explore',
   target: null, targetKind: 'air', lastFrame: 0, nextDecision: 0, lastLabel: '',
   arousal: .16, fatigue: .18, curiosity: .62, habituation: 0, startle: 0,
-  pointer: null, foodCueUntil: 0, playCueUntil: 0, refugeCueUntil: 0, exploreCueUntil: 0,
-  stimulusIntent: '', stimulusUntil: 0,
+  pointer: null, cursorPressure: 0, cursorNearUntil: 0, lastCursorStartle: 0,
+  painUntil: 0, painVisualUntil: 0, foodCueUntil: 0, playCueUntil: 0, refugeCueUntil: 0, exploreCueUntil: 0,
+  stimulusIntent: '', stimulusUntil: 0, placeMessage: '', placeMessageUntil: 0,
 };
 const pick = list => list[Math.floor(Math.random() * list.length)];
 const weightedPick = entries => {
@@ -114,15 +115,16 @@ const weightedPick = entries => {
   return entries[entries.length - 1].value;
 };
 function syncFlyClasses() {
-  fly.className = `fly fly--${flyMotion.signal} fly--${flyMotion.mode} fly--${flyMotion.behavior}`;
+  const aware = simulation.cursorPressure > .12 && performance.now() < simulation.cursorNearUntil ? ' fly--aware' : '';
+  fly.className = `fly fly--${flyMotion.signal} fly--${flyMotion.mode} fly--${flyMotion.behavior}${aware}`;
 }
-function setBehavior(behavior) {
-  const airborne = ['flight', 'hover', 'escape', 'social', 'alert'].includes(behavior);
+function setBehavior(behavior, activityLabel = '') {
+  const airborne = ['flight', 'hover', 'escape', 'social', 'alert', 'hurt'].includes(behavior);
   flyMotion.behavior = behavior;
   flyMotion.mode = airborne ? 'flight' : 'landed';
-  flyMotion.displayActivity = behaviorLabels[behavior] || '';
+  flyMotion.displayActivity = activityLabel || behaviorLabels[behavior] || '';
   syncFlyClasses();
-  gardenWhisper.textContent = flyMotion.displayActivity || 'El jardín está en calma.';
+  gardenWhisper.textContent = performance.now() < simulation.placeMessageUntil ? simulation.placeMessage : (flyMotion.displayActivity || 'El jardín está en calma.');
   if (simulation.lastLabel !== flyMotion.displayActivity) { simulation.lastLabel = flyMotion.displayActivity; render(); }
 }
 function setFlyBehavior(signal, origin) {
@@ -165,7 +167,7 @@ function chooseTarget(kind) {
   return Math.random() < .52 ? pick(garden.air) : { x: randomBetween(.10, .78), y: randomBetween(.18, .52) };
 }
 function chooseDecision(now) {
-  const danger = simulation.startle;
+  const danger = Math.max(simulation.startle, now < simulation.painUntil ? .98 : 0);
   const hunger = clamp(state.hunger / 100, 0, 1);
   const tired = clamp((100 - state.energy) / 100, 0, 1);
   const cues = {
@@ -211,6 +213,7 @@ function simulateFly(now) {
   const dt = Math.min(.045, Math.max(.008, (now - (simulation.lastFrame || now)) / 1000));
   simulation.lastFrame = now;
   simulation.startle = Math.max(0, simulation.startle - dt * (.22 + simulation.habituation * .12));
+  simulation.cursorPressure = Math.max(0, simulation.cursorPressure - dt * 1.45);
   simulation.habituation = clamp(simulation.habituation + dt * .018, 0, .72);
   simulation.fatigue = clamp(simulation.fatigue + dt * (flyMotion.mode === 'flight' ? .006 : -.011), 0, 1);
   simulation.curiosity = clamp(simulation.curiosity + dt * .012 - (simulation.intent === 'rest' ? dt * .025 : 0), .12, .95);
@@ -219,14 +222,15 @@ function simulateFly(now) {
   const dx = target.x - simulation.x, dy = target.y - simulation.y;
   const distance = Math.hypot(dx, dy) || .001;
   const direction = { x: dx / distance, y: dy / distance };
-  const isEscaping = simulation.intent === 'escape' && simulation.startle > .05;
+  const isEscaping = simulation.intent === 'escape' && (simulation.startle > .05 || now < simulation.painUntil);
   const nearTarget = distance < (simulation.targetKind === 'air' ? .04 : .028);
   if (nearTarget && !isEscaping) {
-    if (simulation.targetKind === 'feed') { simulation.state = Math.random() < .22 ? 'walk' : 'feed'; setBehavior(simulation.state); }
-    else if (simulation.targetKind === 'rest') { simulation.state = Math.random() < .18 ? 'groom' : 'rest'; setBehavior(simulation.state); }
-    else if (simulation.intent === 'explore' && Math.random() < .48) { simulation.state = Math.random() < .22 ? 'run' : 'walk'; setBehavior(simulation.state); }
-    else { simulation.state = Math.random() < .4 ? 'hover' : 'perch'; setBehavior(simulation.state); }
-    simulation.nextDecision = Math.min(simulation.nextDecision, now + randomBetween(500, 1350));
+    let dwell;
+    if (simulation.targetKind === 'feed') { simulation.state = Math.random() < .22 ? 'walk' : 'feed'; setBehavior(simulation.state, simulation.state === 'walk' ? 'Caminando sobre los pétalos' : ''); dwell = randomBetween(1500, 3200); }
+    else if (simulation.targetKind === 'rest') { simulation.state = Math.random() < .18 ? 'groom' : 'rest'; setBehavior(simulation.state); dwell = randomBetween(3100, 6800); }
+    else if (simulation.intent === 'explore' && Math.random() < .48) { simulation.state = Math.random() < .22 ? 'run' : 'walk'; setBehavior(simulation.state); dwell = randomBetween(800, 1900); }
+    else { simulation.state = Math.random() < .4 ? 'hover' : 'perch'; setBehavior(simulation.state); dwell = randomBetween(650, 1500); }
+    simulation.nextDecision = now + dwell;
   } else if (isEscaping || simulation.state === 'flight' || simulation.state === 'hover' || simulation.state === 'social') {
     simulation.state = isEscaping ? 'escape' : (simulation.intent === 'social' ? 'social' : 'flight');
     setBehavior(simulation.state);
@@ -244,6 +248,7 @@ function simulateFly(now) {
   simulation.x = clamp(simulation.x + simulation.vx * dt, .05, .82);
   simulation.y = clamp(simulation.y + simulation.vy * dt, .14, .70);
   if (Math.abs(simulation.vx) + Math.abs(simulation.vy) > .01) simulation.heading = clamp(Math.atan2(simulation.vy, simulation.vx) * 180 / Math.PI * .33, -17, 17);
+  if (now < simulation.painVisualUntil) setBehavior('hurt');
   placeFly();
   updateGardenResponse();
 }
@@ -259,16 +264,25 @@ function updateGardenResponse() {
   terrarium.classList.toggle('is-near-pond', nearWater);
   terrarium.classList.toggle('is-disturbed', simulation.startle > .28);
 }
-function stimulatePlace(feature) {
+function stimulatePlace(feature, element) {
   const now = performance.now();
   const stimulus = { nectar: 'feed', refuge: 'rest', water: 'explore' }[feature];
   if (!stimulus) return;
+  const gardenRect = terrarium.getBoundingClientRect();
+  const placeRect = element.getBoundingClientRect();
+  const target = {
+    x: clamp((placeRect.left + placeRect.width / 2 - gardenRect.left) / gardenRect.width, .07, .80),
+    y: clamp((placeRect.top + placeRect.height / 2 - gardenRect.top) / gardenRect.height, .16, .69),
+  };
   simulation.stimulusIntent = stimulus;
   simulation.stimulusUntil = now + (feature === 'refuge' ? 9000 : 6500);
-  simulation.target = chooseTarget(feature === 'nectar' ? 'feed' : feature === 'refuge' ? 'rest' : 'water');
+  simulation.intent = stimulus;
+  simulation.target = target;
   simulation.targetKind = feature === 'nectar' ? 'feed' : feature === 'refuge' ? 'rest' : 'water';
   simulation.nextDecision = now;
-  gardenWhisper.textContent = ({ nectar: 'El perfume dulce se volvió más intenso.', refuge: 'La hoja ofrece una sombra fresca.', water: 'El reflejo del agua cambia con el aire.' })[feature];
+  simulation.placeMessage = ({ nectar: 'El perfume dulce se volvió más intenso.', refuge: 'La hoja ofrece una sombra fresca.', water: 'El reflejo del agua cambia con el aire.' })[feature];
+  simulation.placeMessageUntil = now + 2600;
+  gardenWhisper.textContent = simulation.placeMessage;
 }
 window.addEventListener('resize', placeFly);
 
@@ -279,6 +293,20 @@ function startleFly(reason = 'Detectó una sombra cercana', strength = .62) {
   simulation.nextDecision = performance.now();
   gardenWhisper.textContent = reason;
 }
+function hurtFly() {
+  const now = performance.now();
+  simulation.pointer = { x: simulation.x, y: simulation.y, time: now };
+  simulation.cursorPressure = 1;
+  simulation.cursorNearUntil = now + 700;
+  simulation.startle = 1;
+  simulation.arousal = 1;
+  simulation.habituation = 0;
+  simulation.painVisualUntil = now + 480;
+  simulation.painUntil = now + 3600;
+  simulation.nextDecision = now;
+  setBehavior('hurt');
+  gardenWhisper.textContent = 'El contacto fue brusco; Mica se aleja.';
+}
 terrarium.addEventListener('pointermove', event => {
   if (event.pointerType === 'touch' || !flyMotion.started) return;
   const bounds = terrarium.getBoundingClientRect();
@@ -287,7 +315,19 @@ terrarium.addEventListener('pointermove', event => {
   simulation.pointer = pointer;
   const distance = Math.hypot(pointer.x - simulation.x, pointer.y - simulation.y);
   const velocity = previous ? Math.hypot(pointer.x - previous.x, pointer.y - previous.y) / Math.max(.01, (pointer.time - previous.time) / 1000) : 0;
-  if (distance < .12 && velocity > .12) startleFly('Detectó una sombra cercana', clamp(.34 + velocity * .18, .34, .9));
+  const pressure = clamp(1 - distance / .18, 0, 1);
+  if (pressure > 0) {
+    simulation.cursorPressure = Math.max(simulation.cursorPressure, pressure);
+    simulation.cursorNearUntil = pointer.time + 220;
+  }
+  if (pressure > .42) {
+    simulation.startle = Math.max(simulation.startle, pressure * .48);
+    simulation.nextDecision = pointer.time;
+  }
+  if ((pressure > .68 || (distance < .12 && velocity > .12)) && pointer.time - simulation.lastCursorStartle > 720) {
+    simulation.lastCursorStartle = pointer.time;
+    startleFly('Percibió el cursor muy cerca', clamp(.34 + pressure * .32 + velocity * .10, .34, .9));
+  }
 });
 terrarium.addEventListener('pointerleave', () => { simulation.pointer = null; });
 terrarium.addEventListener('click', event => {
@@ -296,7 +336,7 @@ terrarium.addEventListener('click', event => {
 });
 document.querySelectorAll('[data-feature]').forEach(feature => feature.addEventListener('click', event => {
   event.stopPropagation();
-  stimulatePlace(feature.dataset.feature);
+  stimulatePlace(feature.dataset.feature, feature);
 }));
 
 document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => act(button.dataset.action)));
@@ -304,7 +344,8 @@ document.addEventListener('keydown', event => {
   const action = ({ '1': 'food', '2': 'play', '3': 'rest', '4': 'explore' })[event.key];
   if (action) act(action);
 });
-fly.addEventListener('click', () => act('play'));
+fly.addEventListener('pointerdown', event => { if (event.isPrimary) hurtFly(); });
+fly.addEventListener('click', event => event.stopPropagation());
 document.getElementById('soundToggle').addEventListener('click', event => {
   state.sound = !state.sound; event.currentTarget.textContent = state.sound ? '◉' : '◌';
 });

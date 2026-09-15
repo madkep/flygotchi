@@ -41,6 +41,12 @@
 .fly--escape { filter:drop-shadow(0 10px 10px #07151aaa) brightness(1.09); }
 .fly--escape .fly-wing { animation-duration:56ms; }
 .fly--social .fly-head { animation:fly-social-head .68s ease-in-out infinite alternate; transform-origin:53px 64px; }
+.fly--aware .fly-eye { filter:drop-shadow(0 0 5px #ffd2d0dd); }
+.fly--aware .fly-antenna { animation:fly-antenna-alert .26s ease-in-out infinite alternate; transform-origin:48px 58px; }
+.fly--aware .fly-wing { animation-duration:72ms; }
+.fly--hurt .fly-anatomy { animation:fly-flinch 105ms linear 4; transform-origin:80px 67px; }
+.fly--hurt .fly-wing { animation-duration:52ms; }
+.fly--hurt .fly-leg { animation:fly-leg-tuck 120ms ease-in-out infinite alternate; }
 .fly-shadow { position:absolute; z-index:4; left:0; top:0; width:60px; height:11px; border-radius:50%; background:#06171988; filter:blur(4px); transform:translate3d(var(--shadow-x, 50vw),var(--shadow-y, 72vh),0) scale(var(--shadow-scale, .6)); transition:transform var(--flight-time, 1.7s) ease,opacity .5s; opacity:var(--shadow-alpha,.35); pointer-events:none; }
 .garden-whisper { position:absolute; z-index:3; right:18px; bottom:19px; max-width:220px; padding:7px 10px; border:1px solid #a8d9d766; border-radius:10px; background:#112c36a9; color:#c4ebe0; font:600 10px/1.3 var(--mono,monospace); letter-spacing:.02em; opacity:.76; pointer-events:none; transition:opacity .3s ease, transform .3s ease; }
 .flower { color:#f5d69d; text-shadow:0 0 13px #fff5cfaa; }
@@ -57,5 +63,8 @@
 @keyframes fly-alert-wing { to { transform:rotate(22deg) scaleY(.56); } }
 @keyframes fly-alert-head { to { transform:translate(-2px,-1px) rotate(-4deg); } }
 @keyframes fly-social-head { to { transform:rotate(5deg) translateY(1px); } }
+@keyframes fly-antenna-alert { to { transform:rotate(-10deg) translateY(-2px); } }
+@keyframes fly-flinch { 25% { transform:translate(-4px,2px) rotate(-5deg); } 70% { transform:translate(3px,-2px) rotate(4deg); } }
+@keyframes fly-leg-tuck { to { transform:rotate(20deg) translate(-2px,-4px); } }
 @keyframes flower-sway { to { transform:rotate(8deg); } }
 @media (prefers-reduced-motion:reduce) { .fly,.fly-shadow,.fly-wing,.fly-leg,.fly-thorax,.fly-head,.flower span { animation:none!important; transition:none!important; } }
