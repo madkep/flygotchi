@@ -4,19 +4,65 @@ Una mascota virtual web cuyo comportamiento se expresa a través de una interfaz
 
 ## Ejecutar
 
+Desde la raíz del proyecto:
+
 ```bash
-go run ./cmd/flygotchi-web
+cd /Users/fcespedes/Madkep/flygotchi
 ```
 
-Abre [http://localhost:8080](http://localhost:8080). Para otro puerto: `go run ./cmd/flygotchi-web -port 3000`.
+### Modo recomendado: MaleCNS v1.0 completo
 
-El terrario principal se renderiza como una escena 2D plana dentro del navegador usando WebGL (`web/terrarium-3d.js`). Inicia Go y abre [http://localhost:8080](http://localhost:8080). El proyecto [godot/project.godot](godot/project.godot) conserva una ejecución nativa 3D de referencia.
+Este es el modo que usa la implementación actual. Un solo script levanta el
+servicio Python de `fly.ai`/MaleCNS y el servidor web Go:
 
-Para iniciar el terrario web y el cerebro con un solo comando (macOS/Linux): `./tools/run_terrarium.sh`. Usa `./tools/run_terrarium.sh --godot` solo para abrir la ejecución nativa de Godot. El scheduler Go mantiene el cerebro a 20 Hz aunque el inspector esté cerrado; `go run ./cmd/brain-benchmark` muestra p50/p95 del backend disponible.
+```bash
+FLYGOTCHI_PORT=8095 ./tools/run_flybrain.sh
+```
 
-Para ejecutar el cerebro completo de [fly.ai](https://github.com/alextitonis/fly.ai) como proceso persistente: instala la librería (`python3 -m pip install git+https://github.com/alextitonis/fly.ai.git`), descarga sus datos (`python3 -m flybrain download`) y ejecuta `./tools/run_flybrain.sh`. El adaptador conserva toda la simulación MaleCNS en Python y entrega sus salidas descendentes al mundo Go por HTTP local.
+Después abre [http://127.0.0.1:8095/](http://127.0.0.1:8095/).
 
-La primera ejecución funciona con el cerebro sintético incluido. Si el pack local de MaleCNS v1.0 está disponible, el servidor lo carga automáticamente; si no, mantiene el cerebro sintético.
+El arranque mantiene dos servicios locales:
+
+| Servicio | Dirección | Función |
+| --- | --- | --- |
+| Cerebro MaleCNS | `127.0.0.1:8090` | Simulación neuronal persistente |
+| FlyGotchi web | `127.0.0.1:8095` | API del mundo y navegador |
+
+La primera ejecución crea `data/flybrain-runtime`, instala `fly.ai` y descarga
+el pack si todavía no está disponible. Para comprobar que el cerebro está
+cargado:
+
+```bash
+curl http://127.0.0.1:8090/health
+```
+
+La respuesta debe indicar `fly.ai/male-cns:v1.0`, unas `166700` neuronas y sus
+conexiones. Para detener ambos procesos, vuelve a la terminal del script y
+presiona `Ctrl+C`.
+
+Si el puerto web está ocupado, elige otro sin cambiar el del cerebro:
+
+```bash
+FLYGOTCHI_PORT=8094 ./tools/run_flybrain.sh
+```
+
+### Modo estándar / desarrollo rápido
+
+Para levantar únicamente el servidor Go con el cerebro sintético incluido:
+
+```bash
+go run ./cmd/flygotchi-web -port 8080
+```
+
+Abre [http://127.0.0.1:8080/](http://127.0.0.1:8080/). El atajo
+`./tools/run_terrarium.sh` hace esto y abre el navegador automáticamente.
+
+Usa `./tools/run_terrarium.sh --godot` solo para abrir la escena nativa de
+referencia en Godot; la experiencia principal se renderiza en el navegador
+con WebGL mediante `web/terrarium-3d.js`.
+
+El scheduler Go mantiene el cerebro a 20 Hz aunque el inspector esté cerrado;
+`go run ./cmd/brain-benchmark` muestra p50/p95 del backend disponible.
 
 ## Arquitectura inicial
 
