@@ -14,6 +14,8 @@ El terrario principal se renderiza como una escena 2D plana dentro del navegador
 
 Para iniciar el terrario web y el cerebro con un solo comando (macOS/Linux): `./tools/run_terrarium.sh`. Usa `./tools/run_terrarium.sh --godot` solo para abrir la ejecución nativa de Godot. El scheduler Go mantiene el cerebro a 20 Hz aunque el inspector esté cerrado; `go run ./cmd/brain-benchmark` muestra p50/p95 del backend disponible.
 
+Para ejecutar el cerebro completo de [fly.ai](https://github.com/alextitonis/fly.ai) como proceso persistente: instala la librería (`python3 -m pip install git+https://github.com/alextitonis/fly.ai.git`), descarga sus datos (`python3 -m flybrain download`) y ejecuta `./tools/run_flybrain.sh`. El adaptador conserva toda la simulación MaleCNS en Python y entrega sus salidas descendentes al mundo Go por HTTP local.
+
 La primera ejecución funciona con el cerebro sintético incluido. Si el pack local de MaleCNS v1.0 está disponible, el servidor lo carga automáticamente; si no, mantiene el cerebro sintético.
 
 ## Arquitectura inicial

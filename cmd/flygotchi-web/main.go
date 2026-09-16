@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"flygotchi/internal/brain"
@@ -19,11 +20,17 @@ func main() {
 
 	webRoot := filepath.Join("web")
 	activeBrain := brain.Brain(brain.SyntheticBrain{})
-	if connectome, err := brain.LoadConnectomeBrain(*brainPack); err == nil {
-		activeBrain = connectome
-		log.Printf("loaded brain pack %q", connectome.ID())
-	} else {
-		log.Printf("using synthetic brain: could not load %s: %v", *brainPack, err)
+	if remoteURL := os.Getenv("FLYGOTCHI_FLYBRAIN_URL"); remoteURL != "" {
+		activeBrain = brain.NewRemoteBrain(remoteURL)
+		log.Printf("using persistent fly.ai brain at %s", remoteURL)
+	}
+	if _, remote := activeBrain.(*brain.RemoteBrain); !remote {
+		if connectome, err := brain.LoadConnectomeBrain(*brainPack); err == nil {
+			activeBrain = connectome
+			log.Printf("loaded brain pack %q", connectome.ID())
+		} else {
+			log.Printf("using synthetic brain: could not load %s: %v", *brainPack, err)
+		}
 	}
 	world := game.New(activeBrain, filepath.Join("data", "mica-state.json"))
 	world.Start()
