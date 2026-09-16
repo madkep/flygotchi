@@ -9,6 +9,11 @@
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene(); scene.fog = new THREE.Fog('#10203b', 10, 22);
   const camera = new THREE.PerspectiveCamera(38, 1, .1, 40); camera.position.set(0, 10.8, 7.2); camera.lookAt(0, 0, .25);
+  const cursorRay = new THREE.Raycaster();
+  const cursorNDC = new THREE.Vector2();
+  const cursorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const groundHit = new THREE.Vector3();
+  const flyScreen = new THREE.Vector3();
   const world = new THREE.Group(); scene.add(world);
   const mazeLayer = new THREE.Group(); world.add(mazeLayer); mazeLayer.visible = false;
   const gardenLayer = new THREE.Group(); world.add(gardenLayer);
@@ -85,6 +90,30 @@
     const halo = add(new THREE.RingGeometry(.15, .24, 28), new THREE.MeshBasicMaterial({ color: '#ffe58a', transparent: true, opacity: .6, side: THREE.DoubleSide }), mazeLayer); halo.rotation.x = -Math.PI / 2; halo.position.copy(goal);
   }
   function resize() { const width = canvas.clientWidth || 1, height = canvas.clientHeight || 1; camera.aspect = width / height; camera.updateProjectionMatrix(); renderer.setSize(width, height, false); }
+  function screenToWorld(clientX, clientY) {
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width || !rect.height) return null;
+    cursorNDC.set((clientX-rect.left)/rect.width*2-1,-((clientY-rect.top)/rect.height)*2+1);
+    cursorRay.setFromCamera(cursorNDC,camera);
+    // Intersect at Mica's rendered body height, rather than the ground under
+    // her. In perspective view this eliminates the parallax gap between the
+    // visible fly and the sensory cursor position.
+    cursorPlane.constant=-((state.mazeVisible ? .19 : .18)+(state.altitude||0)*2.2);
+    if(!cursorRay.ray.intersectPlane(cursorPlane,groundHit)) return null;
+    return {x:Math.max(.06,Math.min(.90,groundHit.x/10.4+.5)),y:Math.max(.12,Math.min(.78,groundHit.z/7.1+.5))};
+  }
+  function publishCursorPerception(event) {
+    const rect=canvas.getBoundingClientRect();
+    fly.getWorldPosition(flyScreen); flyScreen.project(camera);
+    const centreX=rect.left+(flyScreen.x*.5+.5)*rect.width;
+    const centreY=rect.top+(-flyScreen.y*.5+.5)*rect.height;
+    const radius=Math.max(56,rect.width*.14);
+    const dx=event.clientX-centreX,dy=event.clientY-centreY;
+    const threat=Math.max(0,Math.min(1,1-Math.hypot(dx,dy)/radius));
+    // This is a lateral optical measurement, not an instruction to turn.
+    const side=Math.max(-1,Math.min(1,dx/radius));
+    window.dispatchEvent(new CustomEvent('flygotchi:pointer-perception',{detail:{threat,left:Math.max(0,1-side),right:Math.max(0,1+side)}}));
+  }
   function updateFly(now) {
     fly.position.copy(point(state.x, state.y, (state.mazeVisible ? .19 : .18)+(state.altitude||0)*2.2));
     // app.js publishes degrees; Three.js rotations use radians.
@@ -128,7 +157,19 @@
   scene.add(new THREE.HemisphereLight('#9bb9ff', '#173827', 2.1));
   const sun = new THREE.DirectionalLight('#fff0b4', 2.3); sun.position.set(-4, 8, 3); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.left = -7; sun.shadow.camera.right = 7; sun.shadow.camera.top = 7; sun.shadow.camera.bottom = -7; scene.add(sun);
   makeGarden(); makeFly(); makeSensoryOverlay(); resize(); new ResizeObserver(resize).observe(canvas); window.addEventListener('resize', resize);
+  canvas.addEventListener('pointermove',publishCursorPerception);
+  canvas.addEventListener('pointerleave',()=>window.dispatchEvent(new CustomEvent('flygotchi:pointer-perception',{detail:{threat:0,left:0,right:0}})));
+  // The animated fly and HUD are DOM layers above the WebGL canvas. Pointer
+  // events can therefore land on those layers instead of the canvas itself.
+  // Listen globally and keep only coordinates inside the terrarium so the
+  // same visual threat reaches the brain even when the cursor is over Mica.
+  window.addEventListener('pointermove', event=>{
+    const rect=canvas.getBoundingClientRect();
+    const inside=event.clientX>=rect.left && event.clientX<=rect.right && event.clientY>=rect.top && event.clientY<=rect.bottom;
+    if(inside) publishCursorPerception(event);
+    else window.dispatchEvent(new CustomEvent('flygotchi:pointer-perception',{detail:{threat:0,left:0,right:0}}));
+  }, {passive:true});
   canvas.closest('.terrarium')?.classList.add('webgl-active');
-  window.terrarium3D = { setFlyState(next = {}) { Object.assign(state, next); }, setEnvironment(next = {}) { if (Object.prototype.hasOwnProperty.call(next, 'maze') && next.maze !== state.maze) drawMaze(next.maze); Object.assign(state, next); } };
+  window.terrarium3D = { screenToWorld, getFlyScreen() { const rect=canvas.getBoundingClientRect(); fly.getWorldPosition(flyScreen); flyScreen.project(camera); return {x:rect.left+(flyScreen.x*.5+.5)*rect.width,y:rect.top+(-flyScreen.y*.5+.5)*rect.height}; }, setFlyState(next = {}) { Object.assign(state, next); }, setEnvironment(next = {}) { if (Object.prototype.hasOwnProperty.call(next, 'maze') && next.maze !== state.maze) drawMaze(next.maze); Object.assign(state, next); } };
   requestAnimationFrame(animate);
 })();

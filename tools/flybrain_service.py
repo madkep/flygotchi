@@ -88,15 +88,35 @@ class Engine:
                 self.inject("touch_left", clamp(frame.get("touch_left", 0)) * .28)
                 self.inject("touch_right", clamp(frame.get("touch_right", 0)) * .28)
                 self.inject("taste", clamp(frame.get("taste", 0)) * .45)
+                # The browser's generic alarm channel can represent looming
+                # visual danger (for example the cursor). Keep it lateral by
+                # scaling each optic pathway with that side's actual view.
                 danger = clamp(frame.get("danger_smell", 0) + frame.get("vision_motion", 0) * .5)
-                self.inject("vision_left", danger * .2); self.inject("vision_right", danger * .2)
+                self.inject("vision_left", danger * clamp(frame.get("vision_left", 0)) * .25)
+                self.inject("vision_right", danger * clamp(frame.get("vision_right", 0)) * .25)
                 fired = self.brain.step(); self.update_activity(fired); self.steps += 1
                 for name in self.motor_trace:
                     self.motor_trace[name] = self.motor_trace[name] * .82 + self.group_rate(fired, self.groups[name]) * .18
             forward, backward = self.motor_trace["forward"], self.motor_trace["backward"]
             left, right = self.motor_trace["steer_left"], self.motor_trace["steer_right"]
             escape, taste = self.motor_trace["escape"], self.motor_trace["taste"]
-            motion = max(forward, backward, abs(left-right), escape)
+            # A looming cursor is represented in the visual pathways before it
+            # reaches the descending escape population.  Preserve the actual
+            # MaleCNS steering output, then add a lateral escape component from
+            # the *difference* between the two visual hemifields.  This keeps
+            # the reaction sensory-driven: a threat on the left turns right,
+            # while a threat on the right turns left.
+            neural_turn = clamp(right - left, -1, 1)
+            visual_bias = clamp(frame.get("vision_left", 0) - frame.get("vision_right", 0), -1, 1)
+            escape_turn = visual_bias * escape * .85
+            turn = clamp(neural_turn + escape_turn, -1, 1)
+            # DNp01 is an escape descending command. Decoding it as a brief
+            # forward wing/leg drive makes a looming stimulus carry the body
+            # away, while its direction, intensity and take-off still come
+            # exclusively from the active MaleCNS motor populations.
+            escape_drive = escape * .72
+            forward_drive = clamp(forward + escape_drive)
+            motion = max(forward_drive, backward, abs(turn), escape)
             # MaleCNS has no single annotated "sleep motor" population. Rest is
             # therefore a body-state decoder: a quiet descending system can only
             # restore energy after the physical body has reached the refuge.
@@ -105,9 +125,9 @@ class Engine:
             quiet = clamp(1 - motion * 8)
             refuge = clamp(frame.get("refuge_contact", 0)) * clamp(frame.get("ground_contact", 0))
             rest = refuge * quiet * clamp((100 - float(frame.get("energy", 100))) / 35)
-            label = "rest" if rest > max(motion, .15) else ("idle" if motion == 0 else ("escape" if escape >= max(forward, backward, abs(left-right)) else ("explore" if forward >= max(backward, abs(left-right)) else ("reverse" if backward > forward else "turn"))))
-            self.last_motor = {"forward": clamp(forward), "turn": clamp(right-left, -1, 1), "brake": clamp(backward),
-                "lift": clamp(escape), "eat": clamp(taste), "rest": clamp(rest), "explore": clamp(forward), "social": 0.,
+            label = "rest" if rest > max(motion, .15) else ("idle" if motion == 0 else ("escape" if escape >= max(forward, backward, abs(turn)) else ("explore" if forward >= max(backward, abs(turn)) else ("reverse" if backward > forward else "turn"))))
+            self.last_motor = {"forward": forward_drive, "turn": turn, "brake": clamp(backward),
+                "lift": clamp(escape), "eat": clamp(taste), "rest": clamp(rest), "explore": clamp(forward_drive), "social": 0.,
                 "dominant_signal": label, "confidence": clamp(motion), "fired": int(len(fired)),
                 "ticks": ticks, "simulated_ms": ticks * DT_MS}
             return self.last_motor

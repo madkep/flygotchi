@@ -28,7 +28,11 @@ function render() {
 function applySnapshot(snapshot, origin = 'load') {
   state = { ...state, ...snapshot.pet };
   motor = snapshot.motor || motor;
-	if (typeof simulation !== 'undefined' && snapshot.body) {
+	// The owning renderer has advanced the body since it sent this request.
+	// Never replace that newer local pose with the request's older echo; passive
+	// tabs still adopt the server pose and remain faithful observers.
+	const isOwnerEcho = typeof simulation !== 'undefined' && simulation.isBodyOwner && snapshot.body_owner === true;
+	if (typeof simulation !== 'undefined' && snapshot.body && !isOwnerEcho) {
 		Object.assign(simulation, { x:snapshot.body.X, y:snapshot.body.Y, vx:snapshot.body.VX, vy:snapshot.body.VY, heading:snapshot.body.Heading, bodyAngle:snapshot.body.BodyAngle, altitude:snapshot.body.Altitude, verticalVelocity:snapshot.body.VerticalVelocity, grounded:snapshot.body.Grounded, support:snapshot.body.Support });
 	}
 	if (typeof simulation !== 'undefined' && Object.prototype.hasOwnProperty.call(snapshot,'body_owner')) simulation.isBodyOwner=snapshot.body_owner;
@@ -193,11 +197,11 @@ function bodySmell(x,y) {
   const carried=Math.exp(-Math.hypot(x-plumeX,y-plumeY)/.26)*.55;
   return clamp((direct+carried)*food.quantity,0,1);
 }
-function seeObject(point, heading) {
+function seeObject(point, heading, rearLimit=.15) {
   if(!point) return {left:0,right:0};
   const dx=point.x-simulation.x,dy=point.y-simulation.y,d=Math.hypot(dx,dy);
   // Wide compound eyes, with less precision toward the edge of the field.
-  if(d>.4 || (dx*heading.x+dy*heading.y)/Math.max(d,.0001)<.15) return {left:0,right:0};
+  if(d>.4 || (dx*heading.x+dy*heading.y)/Math.max(d,.0001)<rearLimit) return {left:0,right:0};
   const steps=Math.ceil(d/.003);
   for(let i=1;i<=steps;i++) if(worldBlocked(simulation.x+dx*i/steps,simulation.y+dy*i/steps)) return {left:0,right:0};
   const side=(heading.x*dy-heading.y*dx)/Math.max(d,.0001), strength=1-d/.5;
@@ -228,9 +232,26 @@ function measureSenses(now) {
   const nearHome=simulation.homeVisible && !simulation.maze && Math.hypot(garden.home.x-simulation.x,garden.home.y-simulation.y)<.14;
   const pointer=simulation.pointer;
   const pressure=pointer ? clamp(1-Math.hypot(pointer.x-simulation.x,pointer.y-simulation.y)/.08,0,1):0;
+  // A cursor is an approaching visual object, not a touch event. It only
+  // reaches the sensory frame when it is inside the fly's visible, unoccluded
+  // field; a real contact signal is reserved for the final few millimetres.
+  // Compound eyes cover the sides too; only a small rear blind spot remains
+  // for an approaching cursor. Food and refuge cues keep their frontal field.
+  const cursor=pointer ? seeObject(pointer,h,-.55) : {left:0,right:0};
+  const screenThreat=simulation.cursorScreenUntil>now ? simulation.cursorScreenThreat : 0;
+  const cursorLeft=Math.max(cursor.left*pressure,screenThreat*simulation.cursorScreenLeft);
+  const cursorRight=Math.max(cursor.right*pressure,screenThreat*simulation.cursorScreenRight);
+  const cursorThreat=clamp(Math.max(cursorLeft,cursorRight),0,1);
+  const cursorContact=clamp((pressure-.72)/.28,0,1);
+  simulation.cursorPressure=cursorThreat;
+  if(cursorThreat>.04) simulation.cursorNearUntil=now+180;
   const water=!simulation.maze && Math.hypot(simulation.x-garden.water[0].x,simulation.y-garden.water[0].y)<.13 && simulation.altitude<.025;
-  const visionStrength=visual.left+visual.right;
-  const visionMotion=clamp(Math.abs(visionStrength-simulation.previousVision)*8,0,1);
+  const visionLeft=clamp(.15*clearLeft+visual.left*.8+home.left*(simulation.homeInvitationUntil>now?.9:.4)+light.left*.5+cursorLeft,0,1);
+  const visionRight=clamp(.15*clearRight+visual.right*.8+home.right*(simulation.homeInvitationUntil>now?.9:.4)+light.right*.5+cursorRight,0,1);
+  const visionStrength=visionLeft+visionRight;
+  // A looming cursor stays salient even if it stops moving. The current
+  // frame's lateral visual values determine which side receives that alarm.
+  const visionMotion=clamp(Math.abs(visionStrength-simulation.previousVision)*8+cursorThreat*.4,0,1);
   simulation.previousVision=visionStrength;
   const speed=Math.hypot(simulation.vx,simulation.vy);
   simulation.currentFoodContact=foodContact; simulation.currentTaste=foodContact&&liveFood ? liveFood.sugar : 0;
@@ -243,10 +264,12 @@ function measureSenses(now) {
     food_smell:smell,food_smell_left:bodySmell(antennaLeft.x,antennaLeft.y),food_smell_right:bodySmell(antennaRight.x,antennaRight.y),
     refuge_smell:refuge,refuge_smell_left:refugeSmell(antennaLeft.x,antennaLeft.y),refuge_smell_right:refugeSmell(antennaRight.x,antennaRight.y),
     refuge_cue:simulation.homeInvitationUntil>now?1:0,refuge_contact:nearHome?1:0,
-    vision_left:clamp(.15*clearLeft+visual.left*.8+home.left*(simulation.homeInvitationUntil>now?.9:.4)+light.left*.5,0,1),
-    vision_right:clamp(.15*clearRight+visual.right*.8+home.right*(simulation.homeInvitationUntil>now?.9:.4)+light.right*.5,0,1),
-    touch_left:clamp(1-clearLeft+pressure+antennaPhase,0,1),touch_right:clamp(1-clearRight+pressure-antennaPhase,0,1),
-    touch:simulation.collided ? 1:pressure,safety:nearHome?1:(simulation.grounded?.32:.16),novelty:clamp(.06+visionMotion*.4,0,1),temperature:simulation.environment.temperature,
+    vision_left:visionLeft,vision_right:visionRight,
+    // danger_smell is the existing generic alarm channel. Its source here is
+    // explicitly optical looming, and not an invented navigation target.
+    danger_smell:cursorThreat,
+    touch_left:clamp(1-clearLeft+cursorContact+antennaPhase,0,1),touch_right:clamp(1-clearRight+cursorContact-antennaPhase,0,1),
+    touch:simulation.collided ? 1:cursorContact,safety:nearHome?1:(simulation.grounded?.32:.16),novelty:clamp(.06+visionMotion*.4,0,1),temperature:simulation.environment.temperature,
     water_contact:water?1:0,taste:simulation.currentTaste,humidity:simulation.environment.humidity,
     airflow:clamp(Math.hypot(simulation.environment.windX,simulation.environment.windY)*16,0,1),
     angular_speed:clamp(Math.abs(simulation.angularVelocity)/2,0,1),body_speed:clamp(speed/.18,0,1),ground_contact:simulation.grounded?1:0,vision_motion:visionMotion,
@@ -282,6 +305,14 @@ function integrateNeuralBody(dt,now) {
   simulation.altitude ||= 0; simulation.verticalVelocity ||= 0; simulation.angularVelocity ||= 0; simulation.bodyAngle ||= 0;
   simulation.vx ||= 0; simulation.vy ||= 0; simulation.grounded ??= true;
   simulation.telemetry ||= [];
+  // A saved pose can originate from a previous camera view. Keep a garden body
+  // inside its collision radius before applying new neural motor output, so it
+  // cannot remain pinned on a border after reconnecting.
+  if(!simulation.maze) {
+    const margin=simulation.radius+.002;
+    simulation.x=clamp(simulation.x,.06+margin,.90-margin);
+    simulation.y=clamp(simulation.y,.12+margin,.78-margin);
+  }
   const fresh=simulation.motorAt && now-simulation.motorAt<600;
   const forward=fresh?clamp(Number(motor.forward)||0,0,1):0;
   const turn=fresh?clamp(Number(motor.turn)||0,-1,1):0;
@@ -294,14 +325,26 @@ function integrateNeuralBody(dt,now) {
   simulation.angularVelocity+=(turn*3.2-simulation.angularVelocity*4.4)*dt;
   simulation.bodyAngle=(simulation.bodyAngle||0)+simulation.angularVelocity*dt;
   const direction={x:Math.cos(simulation.bodyAngle),y:Math.sin(simulation.bodyAngle)};
-  const maxAcceleration=simulation.maze ? .22 : .58;
+  // Normalized world units are metres. Flight is deliberately faster than a
+  // grounded walk, so a neural escape is visible as an actual departure.
+  const maxAcceleration=simulation.maze ? .36 : (simulation.grounded ? .90 : 1.85);
   const acceleration=forward*(1-brake)*maxAcceleration;
   const drag=simulation.grounded?5.4:1.5;
   const windCoupling=simulation.grounded ? .08 : .52;
   simulation.vx+=(direction.x*acceleration+simulation.environment.windX*windCoupling-simulation.vx*drag)*dt;
   simulation.vy+=(direction.y*acceleration+simulation.environment.windY*windCoupling-simulation.vy*drag)*dt;
   const supportHeight=!simulation.maze && simulation.homeVisible && Math.hypot(simulation.x-garden.home.x,simulation.y-garden.home.y)<.14 ? .045 : 0;
-  if(!simulation.maze) simulation.verticalVelocity+=(lift*1.25-.72-simulation.verticalVelocity*.9)*dt;
+  // Lift is a descending-neuron output. It must cross a physical take-off
+  // threshold before the body leaves the surface; otherwise forward/turn are
+  // expressed as walking. No UI action or destination decides this mode.
+  const brainWantsFlight=!simulation.maze && lift>.22;
+  if(!simulation.maze) {
+    const desiredFlightAltitude=.07+lift*.12;
+    const flightThrust=brainWantsFlight
+      ? .72+clamp((desiredFlightAltitude-simulation.altitude)*6,-.24,.32)+(simulation.grounded?.12:0)
+      : 0;
+    simulation.verticalVelocity+=(flightThrust-.72-simulation.verticalVelocity*.9)*dt;
+  }
   else simulation.verticalVelocity=0;
   simulation.altitude+=simulation.verticalVelocity*dt;
   simulation.grounded=simulation.altitude<=supportHeight+.002;
@@ -360,6 +403,7 @@ const simulation = {
   target: null, targetKind: 'air', lastFrame: 0, nextDecision: 0, lastLabel: '',
   arousal: .16, fatigue: .18, curiosity: .62, habituation: 0, startle: 0,
   pointer: null, cursorPressure: 0, cursorNearUntil: 0, lastCursorStartle: 0,
+  cursorScreenThreat: 0, cursorScreenLeft: 0, cursorScreenRight: 0, cursorScreenUntil: 0,
   painUntil: 0, painVisualUntil: 0, foodCueUntil: 0, playCueUntil: 0, refugeCueUntil: 0, exploreCueUntil: 0,
   stimulusIntent: '', stimulusUntil: 0, placeMessage: '', placeMessageUntil: 0,
 };
@@ -430,9 +474,23 @@ window.addEventListener('resize',placeFly);
 terrarium.addEventListener('pointermove',event=>{
   if(event.pointerType==='touch') return;
   const rect=terrarium.getBoundingClientRect();
-  simulation.pointer={x:(event.clientX-rect.left)/rect.width,y:(event.clientY-rect.top)/rect.height};
+  // In WebGL perspective view, screen pixels do not map linearly to the
+  // garden plane. The renderer projects the pointer ray back into the shared
+  // world, so hovering visibly close to Mica is also close to her sensors.
+  simulation.pointer=window.terrarium3D?.screenToWorld?.(event.clientX,event.clientY)
+    || {x:(event.clientX-rect.left)/rect.width,y:(event.clientY-rect.top)/rect.height};
 });
 terrarium.addEventListener('pointerleave',()=>{simulation.pointer=null;});
+window.addEventListener('flygotchi:pointer-perception',event=>{
+  const perception=event.detail;
+  simulation.cursorScreenThreat=perception.threat||0;
+  simulation.cursorScreenLeft=perception.left||0;
+  simulation.cursorScreenRight=perception.right||0;
+  // Keep a stationary cursor perceptible; browsers emit pointermove only when
+  // it moves, while the fly should continue reacting as long as the cursor
+  // remains over her. A later global move outside the terrarium resets this.
+  simulation.cursorScreenUntil=performance.now()+60000;
+});
 document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => act(button.dataset.action)));
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
   window.terrarium3D?.setEnvironment({ viewMode: button.dataset.view });
