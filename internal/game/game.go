@@ -28,12 +28,13 @@ type PetState struct {
 }
 
 type Snapshot struct {
-	Pet       PetState           `json:"pet"`
-	Motor     brain.MotorFrame   `json:"motor"`
-	Brain     string             `json:"brain_pack"`
-	Body      BodyState          `json:"body"`
-	BodyOwner bool               `json:"body_owner"`
-	Visual    *brain.VisualFrame `json:"brain_visual,omitempty"`
+	Pet        PetState           `json:"pet"`
+	Motor      brain.MotorFrame   `json:"motor"`
+	Brain      string             `json:"brain_pack"`
+	Body       BodyState          `json:"body"`
+	BodyOwner  bool               `json:"body_owner"`
+	BrainError string             `json:"brain_error,omitempty"`
+	Visual     *brain.VisualFrame `json:"brain_visual,omitempty"`
 }
 
 // BodyState is the single visible Mica shared by every browser session.
@@ -294,6 +295,9 @@ func (w *World) SimTime() float64 {
 
 func (w *World) snapshot() Snapshot {
 	s := Snapshot{Pet: w.state, Motor: w.lastMotor, Brain: w.brain.ID(), Body: w.body}
+	if monitored, ok := w.brain.(interface{ Status() string }); ok {
+		s.BrainError = monitored.Status()
+	}
 	if visualBrain, ok := w.brain.(brain.VisualBrain); ok {
 		visual := visualBrain.Visual()
 		s.Visual = &visual

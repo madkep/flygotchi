@@ -38,7 +38,8 @@ function applySnapshot(snapshot, origin = 'load') {
     projectionCache = null;
   }
   setText('brainPack', snapshot.brain_pack || 'sin brain pack');
-  const labels = { eat: 'alimentarse', rest: 'reposar', explore: 'explorar', socialize: 'socializar' };
+  if (snapshot.brain_error) setText('signalName', 'cerebro no disponible');
+  const labels = { eat: 'alimentarse', rest: 'reposar', explore: 'explorar', socialize: 'socializar', escape: 'escapar', reverse: 'retroceder', turn: 'girar', idle: 'en reposo', unavailable: 'cerebro no disponible' };
   setText('signalName', labels[motor.dominant_signal] || 'en espera');
   setText('signalConfidence', (motor.confidence || 0).toFixed(2));
   for (const key of ['eat', 'rest', 'explore', 'social']) {
@@ -579,6 +580,13 @@ async function refreshBrainActivity() {
     if(!response.ok) throw new Error('Activity unavailable');
     const frame=await response.json();
     if(frame.brain_pack!==document.getElementById('brainPack').textContent || frame.activity.length!==brainVisual.nodes.length) return;
+    if(frame.motor) {
+      motor=frame.motor;
+      const labels={ eat:'alimentarse', rest:'reposar', explore:'explorar', socialize:'socializar', escape:'escapar', reverse:'retroceder', turn:'girar', idle:'en reposo', unavailable:'cerebro no disponible' };
+      setText('signalName',labels[motor.dominant_signal]||'en espera');
+      setText('signalConfidence',(motor.confidence||0).toFixed(2));
+      for(const key of ['eat','rest','explore','social']) document.getElementById(`motor${key[0].toUpperCase()}${key.slice(1)}`).style.width=`${clamp((motor[key]||0)*100,0,100)}%`;
+    }
     brainVisual.nodes.forEach((node,i)=>{node.activity=frame.activity[i];});
     brainDisplay.nodes.forEach(node=>{node.activity=frame.activity[node.sourceIndex];});
     if(projectionCache) projectionCache.points.forEach(point=>{point.value=clamp(frame.activity[point.sourceIndex]||0,0,1);});

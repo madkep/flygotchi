@@ -69,7 +69,7 @@ func main() {
 			}
 		}
 		w.Header().Set("Cache-Control", "no-store")
-		writeJSON(w, map[string]any{"activity": activity, "brain_pack": snapshot.Brain, "sim_time": world.SimTime()})
+		writeJSON(w, map[string]any{"activity": activity, "brain_pack": snapshot.Brain, "motor": snapshot.Motor, "brain_error": snapshot.BrainError, "sim_time": world.SimTime()})
 	})
 	mux.HandleFunc("GET /api/v1/telemetry", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, map[string]any{"sim_time": world.SimTime(), "brain_pack": world.Snapshot().Brain})

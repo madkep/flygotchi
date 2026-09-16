@@ -30,13 +30,13 @@ El navegador contiene el terrario 2D WebGL, la interfaz y la animación. `web/te
 Web game → Brain API → Brain Pack → simulación neuronal
 ```
 
-Los datasets como FlyWire no se incluyen ni se acoplan al juego: serán adaptadores/brain packs independientes conforme al plan del proyecto.
+Los datos de conectoma se cargan localmente mediante adaptadores, sin incluirlos en Git.
 
 ## Cerebro conectado
 
 El juego ya usa un `SyntheticBrain` real en Go. Al interactuar, el navegador llama a `POST /api/brain/step` con una acción (`food`, `play`, `rest` o `explore`). Go traduce esa acción a señales sensoriales, combina las necesidades internas y devuelve las salidas motoras (`eat`, `rest`, `explore`, `social`).
 
-`GET /api/state` entrega el estado actual y `data/mica-state.json` conserva la memoria y las necesidades locales. Esta frontera está definida por `internal/brain.Brain`: un brain pack o adaptador FlyWire futuro solo tendrá que implementar esa interfaz.
+`GET /api/state` entrega el estado actual y `data/mica-state.json` conserva la memoria y las necesidades locales. Esta frontera está definida por `internal/brain.Brain`, que permite cambiar el adaptador neuronal sin cambiar el mundo.
 
 El cliente 3D usa `POST /api/v1/senses` con una secuencia monotónica. Buscar comida envía olor; el hambre solo baja cuando el volumen corporal intersecta el néctar y se informa `food_contact: true`. `GET /api/v1/telemetry` expone el tiempo simulado sin depender de la frecuencia de render.
 
