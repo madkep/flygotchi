@@ -60,7 +60,7 @@ func (b *ConnectomeBrain) decodeMotor() MotorFrame {
 	right := sum[1][0] + .3*sum[1][1]
 	threatLeft, threatRight := sum[0][2], sum[1][2]
 	// Population sizes and resting potentials are not perfectly symmetrical in
-	// this small FlyWire-derived sample. Decode a *relative* hemispheric
+	// this small MaleCNS-derived sample. Decode a *relative* hemispheric
 	// imbalance, then discard weak asymmetry. Without this, a tiny persistent
 	// baseline difference becomes a permanent circular walk.
 	steer := (right - left) / (right + left + .08)

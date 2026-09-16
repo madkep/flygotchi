@@ -1,5 +1,5 @@
 // Package brain defines the stable boundary between FlyGotchi's world and a
-// particular brain implementation. A FlyWire adapter can implement Brain
+// particular brain implementation. A connectome adapter can implement Brain
 // later without requiring changes to the game or its HTTP API.
 package brain
 

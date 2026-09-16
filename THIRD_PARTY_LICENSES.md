@@ -1,6 +1,16 @@
 # Third-party data and licenses
 
-## FlyWire FAFB v783
+## MaleCNS v1.0
+
+FlyGotchi can use a compact brain pack derived from the official MaleCNS v1.0
+neuPrint dataset (`male-cns:v1.0`), retaining 800 high-connectivity neurons
+and directed connections with at least five synapses. The source data and
+generated pack are not included in this repository; run
+`python3 tools/build_malecns_pack.py` after downloading the official tables.
+MaleCNS is licensed CC-BY 4.0. Source and download instructions:
+https://male-cns.janelia.org/download/
+
+## FlyWire FAFB v783 (legacy)
 
 This local installation can use a compact brain pack derived from the FlyWire FAFB v783 aggregated connectivity, classification, and representative-coordinate tables. It is research data and is **not included in this repository**. The source downloads and derived local pack are ignored by Git.
 

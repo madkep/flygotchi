@@ -14,7 +14,7 @@ import (
 
 func main() {
 	port := flag.Int("port", 8080, "local web server port")
-	brainPack := flag.String("brain-pack", filepath.Join("data", "brain-packs", "flywire-v783-microcircuit", "manifest.json"), "path to a brain-pack manifest")
+	brainPack := flag.String("brain-pack", filepath.Join("data", "brain-packs", "malecns-v1.0-microcircuit", "manifest.json"), "path to a brain-pack manifest")
 	flag.Parse()
 
 	webRoot := filepath.Join("web")

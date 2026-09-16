@@ -14,7 +14,7 @@ El terrario principal se renderiza como una escena 2D plana dentro del navegador
 
 Para iniciar el terrario web y el cerebro con un solo comando (macOS/Linux): `./tools/run_terrarium.sh`. Usa `./tools/run_terrarium.sh --godot` solo para abrir la ejecución nativa de Godot. El scheduler Go mantiene el cerebro a 20 Hz aunque el inspector esté cerrado; `go run ./cmd/brain-benchmark` muestra p50/p95 del backend disponible.
 
-La primera ejecución funciona con el cerebro sintético incluido. Si el pack local de FlyWire está disponible, el servidor lo carga automáticamente; si no, mantiene el cerebro sintético.
+La primera ejecución funciona con el cerebro sintético incluido. Si el pack local de MaleCNS v1.0 está disponible, el servidor lo carga automáticamente; si no, mantiene el cerebro sintético.
 
 ## Arquitectura inicial
 
@@ -40,7 +40,13 @@ El cliente 3D usa `POST /api/v1/senses` con una secuencia monotónica. Buscar co
 
 La interfaz solicita la topología una vez desde `/api/v1/brain/topology`; los snapshots posteriores solo llevan estado y motores. Esto conserva las 800 neuronas internas sin retransmitir la red completa en cada actualización.
 
-## Descargar el brain pack FlyWire FAFB v783 (opcional)
+## Descargar el brain pack MaleCNS v1.0 (opcional)
+
+El servidor usa por defecto `male-cns:v1.0`, el conectoma masculino completo publicado por Janelia/FlyEM. El pack local conserva 800 neuronas de alta conectividad y conexiones dirigidas con umbral de al menos 5 sinapsis. Los datos fuente se descargan desde [Janelia](https://male-cns.janelia.org/download/) y no se incluyen en Git. Tras obtener `neurons.csv.gz` y `edges.csv.gz` en `data/raw/male-cns_v1.0/`, genera el pack con:
+
+```bash
+python3 tools/build_malecns_pack.py
+```
 
 El proyecto puede cargar un microcircuito local derivado de tres productos públicos de FlyWire FAFB v783: conectividad, clasificación y coordenadas representativas de las neuronas. El pack conserva 800 neuronas de alta conectividad y sus conexiones dirigidas con etiquetas de neurotransmisor, para integrar actividad sobre topología real a un coste razonable. El panel cerebral proyecta esas posiciones y muestra una selección de 900 enlaces fuertes. Son puntos representativos, no mallas 3D ni trazas completas de las neuronas. No se suben los archivos de origen ni el pack generado al repositorio.
 

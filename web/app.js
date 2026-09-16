@@ -49,7 +49,7 @@ function applySnapshot(snapshot, origin = 'load') {
   setText('memoryLog', memory);
   const count = brainVisual ? `${brainVisual.nodes.length.toLocaleString('es-CL')} neuronas simuladas · ${brainVisual.total_connections.toLocaleString('es-CL')} conexiones internas · ${brainDisplay.nodes.length} nodos / ${brainDisplay.edges.length} enlaces visibles` : 'Brain pack sintético · cuatro salidas del juego';
   setText('brainCount', count);
-  document.getElementById('neuralCanvas').setAttribute('aria-label', brainVisual ? 'Proyección de neuronas y conexiones dirigidas FlyWire FAFB v783' : 'Diagrama del cerebro sintético');
+  document.getElementById('neuralCanvas').setAttribute('aria-label', brainVisual ? 'Proyección de neuronas y conexiones dirigidas MaleCNS v1.0' : 'Diagrama del cerebro sintético');
   setFlyBehavior(motor.dominant_signal || 'explore', origin);
   render();
 }

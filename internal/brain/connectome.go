@@ -8,8 +8,8 @@ import (
 	"sort"
 )
 
-// ConnectomeBrain executes a compact, derived FlyWire circuit. The topology
-// and transmitter labels are real FAFB v783 data; sensory and motor mappings
+// ConnectomeBrain executes a compact, derived MaleCNS v1.0 circuit. The topology
+// and transmitter labels are real neuPrint data; sensory and motor mappings
 // are a game-facing adapter, not a claim of a biological behavioural model.
 type ConnectomeBrain struct {
 	id          string
@@ -204,7 +204,7 @@ func (b *ConnectomeBrain) Visual() VisualFrame {
 	for i, id := range b.nodes {
 		nodes[i] = VisualNode{ID: id, Position: b.meta[i].Position, Side: b.meta[i].Side, SuperClass: b.meta[i].SuperClass, CellClass: b.meta[i].Class, Activity: b.potentials[i]}
 	}
-	return VisualFrame{Nodes: nodes, Edges: b.visualEdges, TotalConnections: len(b.edges), Dataset: "FlyWire FAFB v783"}
+	return VisualFrame{Nodes: nodes, Edges: b.visualEdges, TotalConnections: len(b.edges), Dataset: b.id}
 }
 
 func clamp(value, low, high float64) float64 {
